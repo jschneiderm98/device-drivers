@@ -22,6 +22,14 @@ Ao escrever no arquivo `/dev/lcd_device_driver/config` o device driver utilizar�
 | Limpar primeira linha | '8' | Limpa a primeira linha (0 - 15) e posiciona o cursor no começo da primeira linha |
 | Limpar segunda linha | '9' | Limpa a segunda linha (40 - 55) e posiciona o cursor no começo da segunda linha |
 
+### Helper
+
+Foi criado um script shell chamado `lcd` para automatizar tarefas de build e facilitar a escrita nos arquivos do device driver. Para instruções de uso basta executar
+
+```
+./lcd help
+```
+
 ## Créditos
 
 Versão inicial criada e uso autorizado por [Diogo Caetano Garcia](https://github.com/DiogoCaetanoGarcia/Sistemas_Embarcados/tree/c04a3e19722d61e9c35284f77ed8be101d53e990/5_T%C3%B3picos_avan%C3%A7ados/5.6_Aplica%C3%A7%C3%B5es/2_LCD_device_driver)
