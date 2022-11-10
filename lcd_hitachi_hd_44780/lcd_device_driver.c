@@ -14,35 +14,8 @@ MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Diogo Caetano Garcia <diogogarcia@unb.br>, Júlio César Schneider Martins <jschneiderm98@gmail.com>");
 MODULE_DESCRIPTION("Ola LCD Device Driver!");
 
-#define DEVICE_NAME "lcd_device_driver"
-#define CLASS_NAME  "lcd_device_driver_class"
 #define MSG_OK(s) printk(KERN_INFO "%s: %s\n", DEVICE_NAME, s)
 #define MSG_BAD(s, err_val) printk(KERN_ERR "%s: %s %ld\n", DEVICE_NAME, s, err_val)
-
-int init_module(void);
-void cleanup_module(void);
-static int data_device_open(struct inode *, struct file *);
-static int data_device_release(struct inode *, struct file *);
-static ssize_t data_device_read(struct file *, char *, size_t, loff_t *);
-static ssize_t data_device_write(struct file *, const char *, size_t, loff_t *);
-static int config_device_open(struct inode *, struct file *);
-static int config_device_release(struct inode *, struct file *);
-static ssize_t config_device_read(struct file *, char *, size_t, loff_t *);
-static ssize_t config_device_write(struct file *, const char *, size_t, loff_t *);
-char Send_Nibble(char nibble, char nibble_type);
-char Send_Byte(char byte, char byte_type);
-void Clear_LCD(void);
-void Config_LCD(void);
-void Send_String(char *str);
-void jiffies_delay(unsigned int n);
-
-#define EN 0
-#define RS 1
-#define D4 2
-#define D5 3
-#define D6 4
-#define D7 5
-#define LCD_LINE_LEN 16
 
 static struct gpio lcd_pins[] = {
 		{  4, GPIOF_OUT_INIT_LOW, "EN" },
@@ -55,6 +28,7 @@ static struct gpio lcd_pins[] = {
 
 static struct class*  lcd_device_driver_Class  = NULL; ///< The device-driver class struct pointer
 static char lcd_text[LCD_LINE_LEN];
+static char full_lcd_characters[MAX_CURSOR_POS + 1];
 
 lcd_config config = {
 	.cursor_ligado = 1,
@@ -63,7 +37,7 @@ lcd_config config = {
 };
 
 
-my_device data_device = {
+lcd_device_manager data_device = {
 	.Device_Open = 0,
 	.Device_Counter = 0,
 	.fops = {
@@ -77,7 +51,7 @@ my_device data_device = {
 	.dev_number = 0
 };
 
-my_device config_device = {
+lcd_device_manager config_device = {
 	.Device_Open = 0,
 	.Device_Counter = 0,
 	.fops = {
@@ -211,6 +185,10 @@ int init_module(void)
 	else
 		MSG_OK("modulo carregado");
 
+	for(i=0; i < MAX_CURSOR_POS; i++)
+		full_lcd_characters[i] = ' ';
+	full_lcd_characters[MAX_CURSOR_POS] = '\0';
+
 	for(i=0; i<LCD_LINE_LEN; i++)
 		lcd_text[i] = '\0';
 	lcd_text[0] = 'O';
@@ -222,6 +200,7 @@ int init_module(void)
 	lcd_text[6] = 'D';
 	Config_LCD();
 	Send_String(lcd_text);
+	register_lcd_values("Ola LCD", 0, 7);
 
 	return ret;
 }
@@ -233,7 +212,7 @@ void cleanup_module(void)
 	MSG_OK("modulo descarregado");
 }
 
-static int device_open(my_device *dev) {
+static int device_open(lcd_device_manager *dev) {
 	if(dev->Device_Open) return -EBUSY;
 	dev->Device_Open++; // Trava acesso ao device
 	dev->Device_Counter = 0; // Conta quantos caracteres foram lidos
@@ -251,7 +230,7 @@ static int config_device_open(struct inode *inode, struct file *file)
 	return device_open(&config_device);
 }
 
-static int device_release(my_device *dev)
+static int device_release(lcd_device_manager *dev)
 {
 	dev->Device_Open--; // Libera acesso ao device
 	module_put(THIS_MODULE); // Decrementa o contador de uso do modulo
@@ -275,11 +254,16 @@ static ssize_t data_device_read(struct file *filp,	/* see include/linux/fs.h   *
 {
 	int i;
 	// End of file
-	if(data_device.Device_Counter>=LCD_LINE_LEN)
+	if(data_device.Device_Counter>0)
 		return 0;
-	for(i=0; (i<length)&&(data_device.Device_Counter<LCD_LINE_LEN)&&(lcd_text[data_device.Device_Counter]!='\0'); i++, data_device.Device_Counter++)
-		put_user(lcd_text[data_device.Device_Counter], buffer+i);
-	return i;
+	buffer[0] = '|';
+	for(i=0; i < 80; i++)
+		buffer[i+1] = full_lcd_characters[i];
+	buffer[i+1] = '|';
+	buffer[i+2] = '\n';
+	//snprintf(buffer, DATA_MESSAGE_SIZE, "|%s|\n", full_lcd_characters);
+	data_device.Device_Counter = DATA_MESSAGE_SIZE;
+	return DATA_MESSAGE_SIZE;
 }
 
 static ssize_t config_device_read(struct file *filp,	/* see include/linux/fs.h   */
@@ -287,26 +271,45 @@ static ssize_t config_device_read(struct file *filp,	/* see include/linux/fs.h  
 			   size_t length,	/* length of the buffer     */
 			   loff_t * offset)
 {
-	int config_message_size = 48;
 	if (config_device.Device_Counter > 0) 
 		return 0;
-	snprintf(buffer, config_message_size, "posicao_cursor:%02d;cursor_ligado:%d;modo_linha:%d\n", config.posicao_cursor, config.cursor_ligado, config.modo_linha);
-	config_device.Device_Counter = config_message_size;
-	return config_message_size;
+	snprintf(buffer, CONFIG_MESSAGE_SIZE, "posicao_cursor:%02d;cursor_ligado:%d;modo_linha:%d\n", config.posicao_cursor, config.cursor_ligado, config.modo_linha);
+	config_device.Device_Counter = CONFIG_MESSAGE_SIZE;
+	return CONFIG_MESSAGE_SIZE;
 }
 
 static ssize_t data_device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 {
-	int i;
-	char local_buff[LCD_LINE_LEN+1]={'\0'};
+	int new_cursor_pos, actual_length;
+	char local_buff[MAX_CURSOR_POS+1];
 	//Clear_LCD();
-	data_device.Device_Counter = 0;
-	for(i=0; (i<len)&&(data_device.Device_Counter<LCD_LINE_LEN); i++, data_device.Device_Counter++)
-		local_buff[i] = lcd_text[data_device.Device_Counter] = buff[i];
-	local_buff[i] = lcd_text[data_device.Device_Counter] = '\0';
+	if (config.posicao_cursor >= MAX_CURSOR_POS) {
+		return len;
+	}
+	new_cursor_pos = config.posicao_cursor + len;
+	actual_length = new_cursor_pos > MAX_CURSOR_POS ? (MAX_CURSOR_POS - config.posicao_cursor) : len;
+	new_cursor_pos = config.posicao_cursor + actual_length;
+	snprintf(local_buff, actual_length+1, buff);
 	Send_String(local_buff);
-	config.posicao_cursor += i;
-	return i;
+	register_lcd_values(local_buff, config.posicao_cursor, actual_length);
+	config.posicao_cursor = new_cursor_pos % MAX_CURSOR_POS;
+	return len;
+}
+
+void limpar_linha(char comando) {
+	if (comando == COMANDO_LIMPAR_PRIMEIRA_LINHA_CHAR) {
+		Send_Byte(COMANDO_RETORNAR_CURSOR, MODO_COMANDO);
+		Send_String(EMPTY_LCD_LINE);
+		Send_Byte(COMANDO_RETORNAR_CURSOR, MODO_COMANDO);
+		config.posicao_cursor = 0;
+		register_lcd_values(EMPTY_LCD_LINE, FIRST_LINE_FIRST_POS, LCD_LINE_LEN);
+		return;
+	}
+	Send_Byte(COMANDO_CURSOR_SEGUNDO_LINHA, MODO_COMANDO);
+	Send_String(EMPTY_LCD_LINE);
+	Send_Byte(COMANDO_CURSOR_SEGUNDO_LINHA, MODO_COMANDO);
+	config.posicao_cursor = 40;
+	register_lcd_values(EMPTY_LCD_LINE, SECOND_LINE_FIRST_POS, SECOND_LINE_FIRST_POS + LCD_LINE_LEN);
 }
 
 char select_configuration(char indicador) {
@@ -325,6 +328,7 @@ char select_configuration(char indicador) {
 			return COMANDO_CURSOR_NAO_VISIVEL;
 		case COMANDO_LIMPAR_DISPLAY_CHAR:
 			config.posicao_cursor = 0;
+			clear_lcd_values();
 			return COMANDO_LIMPAR_DISPLAY;
 		case COMANDO_RETORNAR_CURSOR_CHAR:
 			config.posicao_cursor = 0;
@@ -332,6 +336,10 @@ char select_configuration(char indicador) {
 		case COMANDO_CURSOR_SEGUNDO_LINHA_CHAR:
 			config.posicao_cursor = 40;
 			return COMANDO_CURSOR_SEGUNDO_LINHA;
+		case COMANDO_LIMPAR_PRIMEIRA_LINHA_CHAR:
+		case COMANDO_LIMPAR_SEGUNDO_LINHA_CHAR:
+			limpar_linha(indicador);
+			return COMANDO_INVALIDO;
 		default:
 			return COMANDO_INVALIDO;
 	}
@@ -340,7 +348,8 @@ char select_configuration(char indicador) {
 static ssize_t config_device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 {
 	char comando = select_configuration(buff[0]);
-	Send_Byte(comando, MODO_COMANDO);
+	if(comando != COMANDO_INVALIDO)
+		Send_Byte(comando, MODO_COMANDO);
 	return 1;
 }
 
@@ -391,6 +400,7 @@ void Config_LCD(void)
 	jiffies_delay(1);
 	force_4bit_mode();
 	Send_Byte(COMANDO_CURSOR_VISIVEL, MODO_COMANDO);
+	Send_Byte(COMANDO_1_LINE, MODO_COMANDO);
 	Clear_LCD();
 }
 
@@ -408,4 +418,26 @@ void jiffies_delay(unsigned int n)
 {
 	unsigned long t_end = jiffies + n*HZ/100;
 	while(jiffies<t_end);
+}
+
+void register_lcd_values(char *str, int start, int length) {
+	int i, new_cursor_pos, actual_length;
+	if (start >= MAX_CURSOR_POS) {
+		return;
+	}
+	
+	new_cursor_pos = start + length;
+	actual_length = new_cursor_pos > MAX_CURSOR_POS ? (MAX_CURSOR_POS - start) : length;
+	new_cursor_pos = start + actual_length;
+
+	for(i = 0; i < actual_length && str[i] != '\0' && str[i] != '\x00'; i++) {
+		full_lcd_characters[i + start] = str[i];
+	}
+}
+
+void clear_lcd_values(void) {
+	int i;
+	for(i=0; i < MAX_CURSOR_POS; i++)
+		full_lcd_characters[i] = ' ';
+	full_lcd_characters[MAX_CURSOR_POS] = '\0';
 }

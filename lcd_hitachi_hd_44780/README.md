@@ -19,6 +19,8 @@ Ao escrever no arquivo `/dev/lcd_device_driver/config` o device driver utilizar�
 | Limpar display | '5' | Remove qualquer carácter escrito no display |
 | Retornar cursor | '6' | Retorna o cursor para a primeira posição do display |
 | Ir para segunda linha | '7' | Move o cursor para a primeira posição da segunda linha do display |
+| Limpar primeira linha | '8' | Limpa a primeira linha (0 - 15) e posiciona o cursor no começo da primeira linha |
+| Limpar segunda linha | '9' | Limpa a segunda linha (40 - 55) e posiciona o cursor no começo da segunda linha |
 
 ## Créditos
 
