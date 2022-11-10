@@ -4,4 +4,4 @@ all:
 clean:
 	make -C /lib/modules/$(shell uname -r)/build M=$(shell pwd) clean
 msg:
-	dmesg | tail -10
+	dmesg | tail -20

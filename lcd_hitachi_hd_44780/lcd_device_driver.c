@@ -55,9 +55,13 @@ static struct gpio lcd_pins[] = {
 
 static struct class*  lcd_device_driver_Class  = NULL; ///< The device-driver class struct pointer
 static char lcd_text[LCD_LINE_LEN];
-unsigned short first_load = 1;
-module_param(first_load, short, 0644);
-MODULE_PARM_DESC(first_load, "Optional, indicates if it is the first load of the lcd, 0 - not 1 - yes, defaults to 1");
+
+lcd_config config = {
+	.cursor_ligado = 1,
+	.modo_linha = 1,
+	.posicao_cursor = 7
+};
+
 
 my_device data_device = {
 	.Device_Open = 0,
@@ -229,39 +233,39 @@ void cleanup_module(void)
 	MSG_OK("modulo descarregado");
 }
 
-static int device_open(my_device dev) {
-	if(dev.Device_Open) return -EBUSY;
-	dev.Device_Open++; // Trava acesso ao device
-	dev.Device_Counter = 0; // Conta quantos caracteres foram lidos
+static int device_open(my_device *dev) {
+	if(dev->Device_Open) return -EBUSY;
+	dev->Device_Open++; // Trava acesso ao device
+	dev->Device_Counter = 0; // Conta quantos caracteres foram lidos
 	try_module_get(THIS_MODULE); // Incrementa o contador de uso do modulo
 	return 0;
 }
 
 static int data_device_open(struct inode *inode, struct file *file)
 {
-	return device_open(data_device);
+	return device_open(&data_device);
 }
 
 static int config_device_open(struct inode *inode, struct file *file)
 {
-	return device_open(config_device);
+	return device_open(&config_device);
 }
 
-static int device_release(my_device dev)
+static int device_release(my_device *dev)
 {
-	dev.Device_Open--; // Libera acesso ao device
+	dev->Device_Open--; // Libera acesso ao device
 	module_put(THIS_MODULE); // Decrementa o contador de uso do modulo
 	return 0;
 }
 
 static int data_device_release(struct inode *inode, struct file *file)
 {
-	return device_release(data_device);
+	return device_release(&data_device);
 }
 
 static int config_device_release(struct inode *inode, struct file *file)
 {
-	return device_release(config_device);
+	return device_release(&config_device);
 }
 
 static ssize_t data_device_read(struct file *filp,	/* see include/linux/fs.h   */
@@ -283,42 +287,50 @@ static ssize_t config_device_read(struct file *filp,	/* see include/linux/fs.h  
 			   size_t length,	/* length of the buffer     */
 			   loff_t * offset)
 {
-	// End of file
-	if(config_device.Device_Counter>=0)
+	int config_message_size = 48;
+	if (config_device.Device_Counter > 0) 
 		return 0;
-	put_user('1', buffer);
-	config_device.Device_Counter++;
-	return 1;
+	snprintf(buffer, config_message_size, "posicao_cursor:%02d;cursor_ligado:%d;modo_linha:%d\n", config.posicao_cursor, config.cursor_ligado, config.modo_linha);
+	config_device.Device_Counter = config_message_size;
+	return config_message_size;
 }
 
 static ssize_t data_device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
 {
 	int i;
 	char local_buff[LCD_LINE_LEN+1]={'\0'};
-	Clear_LCD();
+	//Clear_LCD();
 	data_device.Device_Counter = 0;
 	for(i=0; (i<len)&&(data_device.Device_Counter<LCD_LINE_LEN); i++, data_device.Device_Counter++)
 		local_buff[i] = lcd_text[data_device.Device_Counter] = buff[i];
 	local_buff[i] = lcd_text[data_device.Device_Counter] = '\0';
 	Send_String(local_buff);
+	config.posicao_cursor += i;
 	return i;
 }
 
 char select_configuration(char indicador) {
 	switch(indicador) {
 		case COMANDO_1_LINE_CHAR:
+			config.modo_linha = 1;
 			return COMANDO_1_LINE;
 		case COMANDO_2_LINE_CHAR:
+			config.modo_linha = 2;
 			return COMANDO_2_LINE;
 		case COMANDO_CURSOR_VISIVEL_CHAR:
+			config.cursor_ligado = 1;
 			return COMANDO_CURSOR_VISIVEL;
 		case COMANDO_CURSOR_NAO_VISIVEL_CHAR:
+			config.cursor_ligado = 0;
 			return COMANDO_CURSOR_NAO_VISIVEL;
 		case COMANDO_LIMPAR_DISPLAY_CHAR:
+			config.posicao_cursor = 0;
 			return COMANDO_LIMPAR_DISPLAY;
 		case COMANDO_RETORNAR_CURSOR_CHAR:
+			config.posicao_cursor = 0;
 			return COMANDO_RETORNAR_CURSOR;
 		case COMANDO_CURSOR_SEGUNDO_LINHA_CHAR:
+			config.posicao_cursor = 40;
 			return COMANDO_CURSOR_SEGUNDO_LINHA;
 		default:
 			return COMANDO_INVALIDO;
@@ -363,14 +375,21 @@ void Clear_LCD(void)
 	jiffies_delay(2);
 }
 
+void force_4bit_mode(void)
+{
+	// Manda 3 nibbles 0011, garantindo que o lcd esteja em um modo 8 bits
+	// independente de estar no modo 4 bits ou 8 bits anteriormente
+	Send_Nibble(COMANDO_INICIAL, MODO_COMANDO);
+	Send_Nibble(COMANDO_INICIAL, MODO_COMANDO);
+	Send_Nibble(COMANDO_INICIAL, MODO_COMANDO);
+	// Manda 1 nibble setando o modo 4 bits
+	Send_Nibble(COMANDO_NIBBLE_INICIAL_MODO_4_BITS, MODO_COMANDO);
+}
+
 void Config_LCD(void)
 {
 	jiffies_delay(1);
-	printk(KERN_ALERT "first load: %hi\n", first_load);
-	if (first_load)
-		Send_Nibble(COMANDO_NIBBLE_INICIAL_MODO_4_BITS, MODO_COMANDO);
-	else
-		Send_Byte(COMANDO_1_LINE, MODO_COMANDO);
+	force_4bit_mode();
 	Send_Byte(COMANDO_CURSOR_VISIVEL, MODO_COMANDO);
 	Clear_LCD();
 }
