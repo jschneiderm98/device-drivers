@@ -12,10 +12,29 @@
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Diogo Caetano Garcia <diogogarcia@unb.br>, Júlio César Schneider Martins <jschneiderm98@gmail.com>");
-MODULE_DESCRIPTION("Ola LCD Device Driver!");
+MODULE_DESCRIPTION("Device driver to interface with lcd displays that use hitashi_hd_44780");
 
 #define MSG_OK(s) printk(KERN_INFO "%s: %s\n", DEVICE_NAME, s)
 #define MSG_BAD(s, err_val) printk(KERN_ERR "%s: %s %ld\n", DEVICE_NAME, s, err_val)
+
+unsigned short en = 4;
+module_param(en, short, 0644);
+MODULE_PARM_DESC(en, "Optional, gpio for the EN pin of the lcd. Defaults to gpio 4");
+unsigned short rs = 17;
+module_param(rs, short, 0644);
+MODULE_PARM_DESC(rs, "Optional, gpio for the RS pin of the lcd. Defaults to gpio 17");
+unsigned short d4 = 22;
+module_param(d4, short, 0644);
+MODULE_PARM_DESC(d4, "Optional, gpio for the D4 pin of the lcd. Defaults to gpio 22");
+unsigned short d5 = 23;
+module_param(d5, short, 0644);
+MODULE_PARM_DESC(d5, "Optional, gpio for the D5 pin of the lcd. Defaults to gpio 23");
+unsigned short d6 = 24;
+module_param(d6, short, 0644);
+MODULE_PARM_DESC(d6, "Optional, gpio for the D6 pin of the lcd. Defaults to gpio 24");
+unsigned short d7 = 25;
+module_param(d7, short, 0644);
+MODULE_PARM_DESC(d7, "Optional, gpio for the D7 pin of the lcd. Defaults to gpio 25");
 
 static struct gpio lcd_pins[] = {
 		{  4, GPIOF_OUT_INIT_LOW, "EN" },
@@ -27,8 +46,9 @@ static struct gpio lcd_pins[] = {
 };
 
 static struct class*  lcd_device_driver_Class  = NULL; ///< The device-driver class struct pointer
-static char lcd_text[LCD_LINE_LEN];
 static char full_lcd_characters[MAX_CURSOR_POS + 1];
+static char lcd_data_buffer[DATA_MESSAGE_SIZE];
+static char lcd_config_buffer[CONFIG_MESSAGE_SIZE];
 
 lcd_config config = {
 	.cursor_ligado = 1,
@@ -177,6 +197,14 @@ int init_module(void)
 	MSG_OK("dispositivo criado corretamente");
 
 	// Registrar GPIOs para LEDs, ligar LEDs
+
+	lcd_pins[EN].gpio = en;
+	lcd_pins[RS].gpio = rs;
+	lcd_pins[D4].gpio = d4;
+	lcd_pins[D5].gpio = d5;
+	lcd_pins[D6].gpio = d6;
+	lcd_pins[D7].gpio = d7;
+
 	ret = gpio_request_array(lcd_pins, ARRAY_SIZE(lcd_pins));
 	if(ret) {
 		module_clean_level(CLEAN_REGION_CDEV_CLASS_DATA_CONFIG);
@@ -189,17 +217,8 @@ int init_module(void)
 		full_lcd_characters[i] = ' ';
 	full_lcd_characters[MAX_CURSOR_POS] = '\0';
 
-	for(i=0; i<LCD_LINE_LEN; i++)
-		lcd_text[i] = '\0';
-	lcd_text[0] = 'O';
-	lcd_text[1] = 'l';
-	lcd_text[2] = 'a';
-	lcd_text[3] = ' ';
-	lcd_text[4] = 'L';
-	lcd_text[5] = 'C';
-	lcd_text[6] = 'D';
 	Config_LCD();
-	Send_String(lcd_text);
+	Send_String("Ola LCD");
 	register_lcd_values("Ola LCD", 0, 7);
 
 	return ret;
@@ -222,11 +241,18 @@ static int device_open(lcd_device_manager *dev) {
 
 static int data_device_open(struct inode *inode, struct file *file)
 {
+	snprintf(lcd_data_buffer, DATA_MESSAGE_SIZE, "|%s|\n", full_lcd_characters);
 	return device_open(&data_device);
 }
 
 static int config_device_open(struct inode *inode, struct file *file)
 {
+	snprintf(
+		lcd_config_buffer, 
+		CONFIG_MESSAGE_SIZE, 
+		"posicao_cursor:%02d;cursor_ligado:%d;modo_linha:%d\n", 
+		config.posicao_cursor, config.cursor_ligado, config.modo_linha
+	);
 	return device_open(&config_device);
 }
 
@@ -252,18 +278,15 @@ static ssize_t data_device_read(struct file *filp,	/* see include/linux/fs.h   *
 			   size_t length,	/* length of the buffer     */
 			   loff_t * offset)
 {
-	int i;
+	int actual_length;
 	// End of file
-	if(data_device.Device_Counter>0)
+	if(data_device.Device_Counter >= DATA_MESSAGE_SIZE)
 		return 0;
-	buffer[0] = '|';
-	for(i=0; i < 80; i++)
-		buffer[i+1] = full_lcd_characters[i];
-	buffer[i+1] = '|';
-	buffer[i+2] = '\n';
-	//snprintf(buffer, DATA_MESSAGE_SIZE, "|%s|\n", full_lcd_characters);
-	data_device.Device_Counter = DATA_MESSAGE_SIZE;
-	return DATA_MESSAGE_SIZE;
+	actual_length = length + data_device.Device_Counter > DATA_MESSAGE_SIZE ? (DATA_MESSAGE_SIZE - data_device.Device_Counter) : length;
+
+	snprintf(buffer, actual_length, "%s", lcd_data_buffer+data_device.Device_Counter);
+	data_device.Device_Counter += actual_length;
+	return actual_length;
 }
 
 static ssize_t config_device_read(struct file *filp,	/* see include/linux/fs.h   */
@@ -271,11 +294,13 @@ static ssize_t config_device_read(struct file *filp,	/* see include/linux/fs.h  
 			   size_t length,	/* length of the buffer     */
 			   loff_t * offset)
 {
+	int actual_length = length + config_device.Device_Counter > CONFIG_MESSAGE_SIZE ? (CONFIG_MESSAGE_SIZE - config_device.Device_Counter) : length;
+
 	if (config_device.Device_Counter > 0) 
 		return 0;
-	snprintf(buffer, CONFIG_MESSAGE_SIZE, "posicao_cursor:%02d;cursor_ligado:%d;modo_linha:%d\n", config.posicao_cursor, config.cursor_ligado, config.modo_linha);
-	config_device.Device_Counter = CONFIG_MESSAGE_SIZE;
-	return CONFIG_MESSAGE_SIZE;
+	snprintf(buffer, actual_length, "%s", lcd_config_buffer+config_device.Device_Counter);
+	config_device.Device_Counter = actual_length;
+	return actual_length;
 }
 
 static ssize_t data_device_write(struct file *filp, const char *buff, size_t len, loff_t * off)
@@ -315,9 +340,13 @@ void limpar_linha(char comando) {
 char select_configuration(char indicador) {
 	switch(indicador) {
 		case COMANDO_1_LINE_CHAR:
+			Send_Byte(COMANDO_LIMPAR_DISPLAY, MODO_COMANDO);
+			clear_lcd_values();
 			config.modo_linha = 1;
 			return COMANDO_1_LINE;
 		case COMANDO_2_LINE_CHAR:
+			Send_Byte(COMANDO_LIMPAR_DISPLAY, MODO_COMANDO);
+			clear_lcd_values();
 			config.modo_linha = 2;
 			return COMANDO_2_LINE;
 		case COMANDO_CURSOR_VISIVEL_CHAR:
@@ -327,7 +356,6 @@ char select_configuration(char indicador) {
 			config.cursor_ligado = 0;
 			return COMANDO_CURSOR_NAO_VISIVEL;
 		case COMANDO_LIMPAR_DISPLAY_CHAR:
-			config.posicao_cursor = 0;
 			clear_lcd_values();
 			return COMANDO_LIMPAR_DISPLAY;
 		case COMANDO_RETORNAR_CURSOR_CHAR:
@@ -440,4 +468,5 @@ void clear_lcd_values(void) {
 	for(i=0; i < MAX_CURSOR_POS; i++)
 		full_lcd_characters[i] = ' ';
 	full_lcd_characters[MAX_CURSOR_POS] = '\0';
+	config.posicao_cursor = 0;
 }

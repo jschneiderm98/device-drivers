@@ -8,9 +8,9 @@
 #define MAX_CURSOR_POS 80
 #define FIRST_LINE_FIRST_POS 0
 #define SECOND_LINE_FIRST_POS 40
-#define EMPTY_LCD_LINE "                "
+#define EMPTY_LCD_LINE "                                        "
 #define CONFIG_MESSAGE_SIZE 48
-#define DATA_MESSAGE_SIZE 83
+#define DATA_MESSAGE_SIZE 84
 
 // Constantes para comando do display lcd
 

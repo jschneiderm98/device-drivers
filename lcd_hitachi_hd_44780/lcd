@@ -12,6 +12,7 @@ help()
     echo "escrita: write operation writes in /dev/lcd_device_driver/data, requires value parameter"
     echo "ler_dado: reads last written value from /dev/lcd_device_driver/data"
     echo "ler_config: reads current configuration from /dev/lcd_device_driver/config"
+    echo "ler: reads both files similarly to ler_dado and ler_config"
 }
 
 setup()
@@ -65,6 +66,10 @@ case $1 in
         sudo cat /dev/lcd_device_driver/data
         exit;;
     "ler_config")
+        sudo cat /dev/lcd_device_driver/config
+        exit;;
+    "ler")
+        sudo cat /dev/lcd_device_driver/data
         sudo cat /dev/lcd_device_driver/config
         exit;;
     *) 
