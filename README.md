@@ -62,3 +62,27 @@ sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/build
     make clean
     ```
 
+## TCC
+
+O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclusão de curso).
+
+### Aluno: [Júlio César Schneider Martins](https://github.com/jschneiderm98)
+### Orientador: [Diogo Caetano Garcia](https://github.com/DiogoCaetanoGarcia)
+
+## Cronograma TCC1
+
+| Semana | Data inicial | Tarefa |
+| - | - | - |
+| 01 | 28/11/2022 | Estudar outros módulos para o desenvolvimento de device drivers. |
+| 02 | 05/12/2022 | Planejar desenvolvimento dos device drivers do(s) módulo(s) escolhido(s)  |
+| 03 | 12/12/2022 | Iniciar escrita do TCC, escrever introdução |
+| 04 | 19/12/2022 | Realizar revisão bibliográfica |
+| 05 | 26/12/2022 | Natal |
+| 06 | 02/01/2023 | Realizar revisão bibliográfica |
+| 07 | 09/01/2023 | Escrever Proposta de tema |
+| 08 | 16/01/2023 | Escrever resultados e discussão |
+| 09 | 23/01/2023 | Escrever Passos futuros e cronograma |
+| 10 | 30/01/2023 | Revisão do texto |
+| 11 | 06/02/2023 | Revisão do texto |
+| 12 | 13/02/2023 | Revisão do texto |
+| 13 | 20/02/2023 | Defesa na banca de TCC |
