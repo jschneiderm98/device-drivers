@@ -75,7 +75,7 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 | - | - | - |
 | 01 | 28/11/2022 | Estudar outros módulos para o desenvolvimento de device drivers. |
 | 02 | 05/12/2022 | Planejar desenvolvimento dos device drivers do(s) módulo(s) escolhido(s)  |
-| 03 | 12/12/2022 | Iniciar escrita do TCC, escrever introdução |
+| 03 | 12/12/2022 | Iniciar escrita do TCC1, escrever introdução |
 | 04 | 19/12/2022 | Realizar revisão bibliográfica |
 | 05 | 26/12/2022 | Natal |
 | 06 | 02/01/2023 | Realizar revisão bibliográfica |
@@ -85,4 +85,26 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 | 10 | 30/01/2023 | Revisão do texto |
 | 11 | 06/02/2023 | Revisão do texto |
 | 12 | 13/02/2023 | Revisão do texto |
-| 13 | 20/02/2023 | Defesa na banca de TCC |
+| 13 | 20/02/2023 | Defesa na banca de TCC1 |
+
+## Cronograma TCC2
+
+| Semana | Data inicial | Tarefa |
+| - | - | - |
+| 01 | 27/03/2023 | Revisão do contéudo estudado no TCC1 |
+| 02 | 03/04/2022 | Estudo sobre o uso de interrupções em módulos do kernel |
+| 03 | 10/04/2022 | Estudo sobre o uso de comunicação serial em módulos do kernel |
+| 04 | 17/04/2022 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 05 | 24/04/2022 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 06 | 01/05/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 07 | 08/05/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 08 | 15/05/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 09 | 22/05/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 10 | 29/05/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |
+| 11 | 05/06/2023 | Continuação da escrita dos Materiais e métodos |
+| 12 | 12/06/2023 | Continuação da escrita do Desenvolvimento dos Drivers |
+| 13 | 19/06/2023 | Continuação da escrita dos Resultados e Discussões |
+| 14 | 26/06/2023 | Continuação da escrita da Conclusão |
+| 15 | 03/07/2023 | Continuação da escrita da Introdução e do Resumo |
+| 16 | 10/07/2023 | Revisão textual |
+| 17 | 17/07/2023 | Defesa na banca de TCC2 |
