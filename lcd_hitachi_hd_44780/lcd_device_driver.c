@@ -86,11 +86,12 @@ lcd_device_manager config_device = {
 };
 
 #define CLEAN_ALL                            0
-#define CLEAN_REGION_CDEV_CLASS_DATA_CONFIG  1
-#define CLEAN_REGION_CDEV_CLASS_DATA         2
-#define CLEAN_REGION_CDEV_CLASS              3
-#define CLEAN_REGION_CDEV                    4
-#define CLEAN_REGION                         5
+#define CLEAN_DEVICE_CONFIG                  1
+#define CLEAN_DEVICE_DATA                    2
+#define CLEAN_CLASS                          3
+#define CLEAN_CDEV_CONFIG                    4
+#define CLEAN_CDEV_DATA                      5
+#define CLEAN_REGION                         6
 void module_clean_level(unsigned int level)
 {
 	int i;
@@ -102,10 +103,10 @@ void module_clean_level(unsigned int level)
 		// Liberar GPIOs dos LEDs
 		gpio_free_array(lcd_pins, ARRAY_SIZE(lcd_pins));
 	}
-	if(level<2) { // Remove o dispositivo
+	if(level<2) { // Remove o dispositivo de configuracao
 		device_destroy(lcd_device_driver_Class, config_device.dev_number);
 	}
-	if(level<3) { // Remove o dispositivo
+	if(level<3) { // Remove o dispositivo de dados
 		device_destroy(lcd_device_driver_Class, data_device.dev_number);
 	}
 	if(level<4) // Desfaz o registro da classe de dispositivo e remove a classe de dispositivo
@@ -113,11 +114,15 @@ void module_clean_level(unsigned int level)
 		class_unregister(lcd_device_driver_Class);
 		class_destroy(lcd_device_driver_Class);
 	}
-	if(level<5) // Desfaz o registro da classe de dispositivo e remove a classe de dispositivo
+	if(level<5) // Desaloca a struct cdev para o dispositivo de configuracao
+	{
+		cdev_del(config_device.cdev_data);
+	}
+	if(level<6) // Desaloca a struct cdev para o dispositivo de dados
 	{
 		cdev_del(data_device.cdev_data);
 	}
-	if(level<6) // Desfaz o registro do major number
+	if(level<7) // Desfaz o registro do major number e da regiao alocada
 		unregister_chrdev_region(data_device.dev_number, 1);
 }
 
@@ -142,7 +147,7 @@ int init_module(void)
 
 	config_device.cdev_data = cdev_alloc();
 	if(!config_device.cdev_data) {
-		module_clean_level(CLEAN_REGION); 
+		module_clean_level(CLEAN_CDEV_DATA); 
 		MSG_BAD("Error while allocating config-cdev", 0L);
 		return -1;
 	}
@@ -153,7 +158,7 @@ int init_module(void)
 	err = cdev_add(data_device.cdev_data, data_device.dev_number, 1);
 	if (err < 0)
 	{
-		module_clean_level(CLEAN_REGION);
+		module_clean_level(CLEAN_CDEV_CONFIG);
 		MSG_BAD("Error while adding cdev", (long int)err);
 		return err;
 	}
@@ -161,7 +166,7 @@ int init_module(void)
 	err = cdev_add(config_device.cdev_data, config_device.dev_number, 1);
 	if (err < 0)
 	{
-		module_clean_level(CLEAN_REGION);
+		module_clean_level(CLEAN_CDEV_CONFIG);
 		MSG_BAD("Error while adding cdev", (long int)err);
 		return err;
 	}
@@ -170,7 +175,7 @@ int init_module(void)
 	lcd_device_driver_Class = class_create(THIS_MODULE, CLASS_NAME);
 	if(IS_ERR(lcd_device_driver_Class)) // Se houve erro no registro
 	{
-		module_clean_level(CLEAN_REGION_CDEV);
+		module_clean_level(CLEAN_CDEV_CONFIG);
 		unregister_chrdev_region(data_device.dev_number, 1);
 		MSG_BAD("falhou em registrar a classe do dispositivo", PTR_ERR(lcd_device_driver_Class));
 		return PTR_ERR(lcd_device_driver_Class); // Correct way to return an error on a pointer
@@ -181,20 +186,20 @@ int init_module(void)
 	data_device.driver_device = device_create(lcd_device_driver_Class, NULL, data_device.dev_number, NULL, DEVICE_NAME "!data");
 	if(IS_ERR(data_device.driver_device)) // Se houve erro no registro
 	{
-		module_clean_level(CLEAN_REGION_CDEV_CLASS);
-		MSG_BAD("falhou em criar o device driver", PTR_ERR(data_device.driver_device));
+		module_clean_level(CLEAN_CLASS);
+		MSG_BAD("falhou em criar o device driver de dados", PTR_ERR(data_device.driver_device));
 		return PTR_ERR(data_device.driver_device);
 	}
-	MSG_OK("dispositivo criado corretamente");
+	MSG_OK("dispositivo de dados criado corretamente");
 
 	config_device.driver_device = device_create(lcd_device_driver_Class, NULL, config_device.dev_number, NULL, DEVICE_NAME "!config");
 	if(IS_ERR(config_device.driver_device)) // Se houve erro no registro
 	{
-		module_clean_level(CLEAN_REGION_CDEV_CLASS_DATA);
-		MSG_BAD("falhou em criar o device driver", PTR_ERR(config_device.driver_device));
+		module_clean_level(CLEAN_DEVICE_DATA);
+		MSG_BAD("falhou em criar o device driver de configuracao", PTR_ERR(config_device.driver_device));
 		return PTR_ERR(config_device.driver_device);
 	}
-	MSG_OK("dispositivo criado corretamente");
+	MSG_OK("dispositivo de configuracao criado corretamente");
 
 	// Registrar GPIOs para LEDs, ligar LEDs
 
@@ -207,7 +212,7 @@ int init_module(void)
 
 	ret = gpio_request_array(lcd_pins, ARRAY_SIZE(lcd_pins));
 	if(ret) {
-		module_clean_level(CLEAN_REGION_CDEV_CLASS_DATA_CONFIG);
+		module_clean_level(CLEAN_DEVICE_CONFIG);
 		MSG_BAD("não conseguiu acesso ao GPIO", (long int)ret);
 	}
 	else

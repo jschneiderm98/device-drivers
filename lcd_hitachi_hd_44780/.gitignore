@@ -10,4 +10,6 @@ modules.order
 lcd_device_driver.mod      
 lcd_device_driver.mod.o     
 .lcd_device_driver.o.cmd      
-.modules.order.cmd  
+.modules.order.cmd
+__pycache__
+.vscode
