@@ -52,6 +52,47 @@ Foi criado um script shell chamado `lcd` para automatizar tarefas de build e fac
 ./lcd help
 ```
 
+## Diagrama de fluxo da criação do módulo
+
+```mermaid
+flowchart TD
+    A(["module_init"]) --> B["alloc_chrdev_region (para dois drivers)"]
+    B --> C{erro}
+    C -->|Sim| D1(["module_clean"])
+    C -->|Não| E["cdev_alloc(data device)"]
+    E --> F{erro}
+    F -->|Sim| D1(["module_clean"])
+    F -->|Não| G["cdev_alloc(config device)"]
+    G --> H{erro}
+    H -->|Sim| D1(["module_clean"])
+    H -->|Não| I["cdev_init(data device)"]
+    I --> J["cdev_init(config device)"]
+    J --> ZV["cdev_add(data device)"]
+    ZV --> ZZ{erro}
+    ZZ -->|Sim| D1(["module_clean"])
+    ZZ -->|Não| ZY["cdev_add(data config)"]
+    ZY --> ZX{erro}
+    ZX -->|Sim| D1(["module_clean"])
+    ZX -->|Não| M(("A"))
+
+    N(("A")) --> Q["class_create"]
+    Q --> R{erro}
+    R -->|Sim| D2(["module_clean"])
+    R -->|Não| S["device_create (data)"]
+    S --> T{erro}
+    T -->|Sim| D2(["module_clean"])
+    T -->|Não| U["device_create (config)"]
+    U --> V{erro}
+    V -->|Sim| D2(["module_clean"])
+    V -->|Não| X["gpio_request_array (config)"]
+    X --> Y{erro}
+    Y -->|Sim| D2(["module_clean"])
+    Y -->|Não| Z["gpio_request_array (config)"]
+    Z --> AA{erro}
+    AA -->|Sim| D2(["module_clean"])
+    AA -->|Não| AB(["return"])
+```
+
 ## Créditos
 
 Versão inicial criada e uso autorizado por [Diogo Caetano Garcia](https://github.com/DiogoCaetanoGarcia/Sistemas_Embarcados/tree/c04a3e19722d61e9c35284f77ed8be101d53e990/5_T%C3%B3picos_avan%C3%A7ados/5.6_Aplica%C3%A7%C3%B5es/2_LCD_device_driver)
