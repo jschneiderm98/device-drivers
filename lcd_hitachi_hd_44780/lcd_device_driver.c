@@ -1,5 +1,3 @@
-// Codigo para criar um dispositivo de escrita em GPIO
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/fs.h>

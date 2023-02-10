@@ -58,7 +58,7 @@ typedef struct lcd_device_manager
 
 typedef struct lcd_config
 {
-    int posicao_cursor;  //indica posição autal do cursor 0-15 primeira linha, 40-55 segunda linha, max -> 80
+    int posicao_cursor;  //indica posição autal do cursor 0-39 primeira linha, 40-79 segunda linha, max -> 80
     int cursor_ligado;  // indica se o cursor esta ligado no display, 0 - false, 1 - true
     int modo_linha; // indica quantas linhas estão atividas no display 1 - 1 linha, 2 - 2 linhas
 } lcd_config;
