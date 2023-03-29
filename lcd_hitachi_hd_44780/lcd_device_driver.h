@@ -13,6 +13,11 @@
 #define CONFIG_MESSAGE_SIZE 48
 #define DATA_MESSAGE_SIZE 84
 
+// Log function macros
+
+#define MSG_OK(s) printk(KERN_INFO "%s: %s\n", DEVICE_NAME, s)
+#define MSG_BAD(s, err_val) printk(KERN_ERR "%s: %s %ld\n", DEVICE_NAME, s, err_val)
+
 // Constantes para comando do display lcd
 
 #define MODO_COMANDO 0
@@ -64,8 +69,8 @@ typedef struct lcd_config
     int modo_linha; // indica quantas linhas estão atividas no display 1 - 1 linha, 2 - 2 linhas
 } lcd_config;
 
-int init_module(void);
-void cleanup_module(void);
+static int __init init_lcd_driver(void);
+static void __exit exit_lcd_driver(void);
 static int data_device_open(struct inode *, struct file *);
 static int data_device_release(struct inode *, struct file *);
 static ssize_t data_device_read(struct file *, char *, size_t, loff_t *);
@@ -78,7 +83,16 @@ char Send_Nibble(char nibble, char nibble_type);
 char Send_Byte(char byte, char byte_type);
 void Clear_LCD(void);
 void Config_LCD(void);
+void force_4bit_mode(void)
 void Send_String(char *str);
 void jiffies_delay(unsigned int n);
 void register_lcd_values(char *str, int start, int length);
 void clear_lcd_values(void);
+
+// macro to make functions overridable only on tests
+
+#ifdef CONFIG_KUNIT
+#define __mockable __weak
+#else
+#define __mockable
+#endif

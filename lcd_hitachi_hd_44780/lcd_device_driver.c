@@ -6,14 +6,12 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/gpio.h>
-#include "constants.h"
+#include "lcd_device_driver.h"
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Diogo Caetano Garcia <diogogarcia@unb.br>, Júlio César Schneider Martins <jschneiderm98@gmail.com>");
 MODULE_DESCRIPTION("Device driver to interface with lcd displays that use hitashi_hd_44780");
 
-#define MSG_OK(s) printk(KERN_INFO "%s: %s\n", DEVICE_NAME, s)
-#define MSG_BAD(s, err_val) printk(KERN_ERR "%s: %s %ld\n", DEVICE_NAME, s, err_val)
 
 unsigned short en = 4;
 module_param(en, short, 0644);
@@ -124,7 +122,7 @@ void module_clean_level(unsigned int level)
 		unregister_chrdev_region(data_device.dev_number, 1);
 }
 
-int init_module(void)
+static int __init init_lcd_driver(void)
 {
 	int ret, i, result, err;
 
@@ -227,7 +225,7 @@ int init_module(void)
 	return ret;
 }
 
-void cleanup_module(void)
+static void __exit exit_lcd_driver(void)
 {
 	Clear_LCD();
 	module_clean_level(CLEAN_ALL);
@@ -384,7 +382,7 @@ static ssize_t config_device_write(struct file *filp, const char *buff, size_t l
 	return 1;
 }
 
-char Send_Nibble(char nibble, char nibble_type)
+char __mockable Send_Nibble(char nibble, char nibble_type)
 {
 	if((nibble_type!=MODO_DADO)&&(nibble_type!=MODO_COMANDO))
 		return -1;
@@ -473,3 +471,6 @@ void clear_lcd_values(void) {
 	full_lcd_characters[MAX_CURSOR_POS] = '\0';
 	config.posicao_cursor = 0;
 }
+
+module_init(init_lcd_driver);
+module_exit(exit_lcd_driver);
