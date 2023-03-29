@@ -1,4 +1,5 @@
 #include <linux/device.h>
+#include <linux/fs.h>
 
 // Constantes gerais do projeto
 
