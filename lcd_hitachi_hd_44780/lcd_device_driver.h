@@ -69,30 +69,27 @@ typedef struct lcd_config
     int modo_linha; // indica quantas linhas estão atividas no display 1 - 1 linha, 2 - 2 linhas
 } lcd_config;
 
-static int __init init_lcd_driver(void);
-static void __exit exit_lcd_driver(void);
-static int data_device_open(struct inode *, struct file *);
-static int data_device_release(struct inode *, struct file *);
-static ssize_t data_device_read(struct file *, char *, size_t, loff_t *);
-static ssize_t data_device_write(struct file *, const char *, size_t, loff_t *);
-static int config_device_open(struct inode *, struct file *);
-static int config_device_release(struct inode *, struct file *);
-static ssize_t config_device_read(struct file *, char *, size_t, loff_t *);
-static ssize_t config_device_write(struct file *, const char *, size_t, loff_t *);
-char Send_Nibble(char nibble, char nibble_type);
-char Send_Byte(char byte, char byte_type);
-void Clear_LCD(void);
-void Config_LCD(void);
-void force_4bit_mode(void)
-void Send_String(char *str);
-void jiffies_delay(unsigned int n);
-void register_lcd_values(char *str, int start, int length);
-void clear_lcd_values(void);
-
-// macro to make functions overridable only on tests
-
-#ifdef CONFIG_KUNIT
-#define __mockable __weak
-#else
-#define __mockable
-#endif
+void lcd_module_clean_level(unsigned int level);
+int __init lcd_init_driver(void);
+void __exit lcd_exit_driver(void);
+int lcd_device_open(lcd_device_manager *dev);
+int lcd_device_release(lcd_device_manager *dev);
+int lcd_data_device_open(struct inode *, struct file *);
+int lcd_data_device_release(struct inode *, struct file *);
+ssize_t lcd_data_device_read(struct file *, char *, size_t, loff_t *);
+ssize_t lcd_data_device_write(struct file *, const char *, size_t, loff_t *);
+int lcd_config_device_open(struct inode *, struct file *);
+int lcd_config_device_release(struct inode *, struct file *);
+ssize_t lcd_config_device_read(struct file *, char *, size_t, loff_t *);
+ssize_t lcd_config_device_write(struct file *, const char *, size_t, loff_t *);
+void lcd_limpar_linha(char comando);
+char lcd_select_configuration(char indicador);
+char lcd_send_nibble(char nibble, char nibble_type);
+char lcd_send_byte(char byte, char byte_type);
+void lcd_clear_screen(void);
+void lcd_config_device(void);
+void lcd_force_4bit_mode(void);
+void lcd_send_string(char *str);
+void lcd_jiffies_delay(unsigned int n);
+void lcd_register_values_change(char *str, int start, int length);
+void lcd_clear_values(void);

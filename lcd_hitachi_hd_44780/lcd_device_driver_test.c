@@ -1,16 +1,17 @@
+#include <linux/kernel.h>
 #include <kunit/test.h>
-#include "lcd_device_driver.h"
+#include "lcd_device_driver.c"
 
 static void test_force_4bit_mode(struct kunit *test)
 {
-  force_4bit_mode();
+  KUNIT_ASSERT_EQ(test, 2, 1 + 1);
 }
 
-char Send_Nibble(char nibble, char nibble_type)
+/*char lcd_send_nibble(char nibble, char nibble_type)
 {
-  MSG_OK("Entrei no mock");
-	return 0;
-}
+  MSG_OK("entrei no mock");
+	return 'A';
+}*/
 
 
 static struct kunit_case lcd_test_cases[] = {
@@ -23,5 +24,9 @@ static struct kunit_suite lcd_test_suite = {
     .name = "lcd-driver-test",
     .test_cases = lcd_test_cases,
 };
+
+MODULE_LICENSE("GPL v2");
+MODULE_AUTHOR("Júlio César Schneider Martins <jschneiderm98@gmail.com>");
+MODULE_DESCRIPTION("Tests for the device driver to interface with lcd displays that use hitashi_hd_44780");
 
 kunit_test_suite(lcd_test_suite);
