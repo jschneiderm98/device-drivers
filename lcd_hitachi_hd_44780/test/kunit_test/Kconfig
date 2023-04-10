@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0
+
+config LCD_DRIVER
+  tristate "lcd driver for hd hitashi 44780"
+
+config LCD_DRIVER_TEST
+  tristate "kunit test for lcd_driver" if !KUNIT_ALL_TESTS
+  default KUNIT_ALL_TESTS
+  #depends on KUNIT
+  depends on KUNIT

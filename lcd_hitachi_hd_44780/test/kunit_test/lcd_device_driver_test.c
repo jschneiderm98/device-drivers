@@ -2,17 +2,17 @@
 #include <kunit/test.h>
 #include "lcd_device_driver.c"
 
-static void test_force_4bit_mode(struct kunit *test)
+char lcd_send_nibble(char nibble, char nibble_type)
 {
-  KUNIT_ASSERT_EQ(test, 2, 1 + 1);
+  printk(KERN_INFO "%s: %s\n", "lcd-driver-test", "fui no mock");
+	return 'A';
 }
 
-/*char lcd_send_nibble(char nibble, char nibble_type)
+static void test_force_4bit_mode(struct kunit *test)
 {
-  MSG_OK("entrei no mock");
-	return 'A';
-}*/
-
+  lcd_force_4bit_mode();
+  KUNIT_ASSERT_EQ(test, 2, 1 + 1);
+}
 
 static struct kunit_case lcd_test_cases[] = {
     KUNIT_CASE(test_force_4bit_mode),
