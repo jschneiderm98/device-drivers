@@ -34,7 +34,7 @@ teardown()
 verify_second_argument()
 {
     if [ $1 -lt 2 ]; then
-        echo "Must pass second argument. Usage: pass 'help' as argument"
+        echo "Must pass second argument. Usage: pass 'help' as argument to the script"
         false
         return $?
     fi

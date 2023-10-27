@@ -70,8 +70,8 @@ typedef struct lcd_config
 } lcd_config;
 
 void lcd_module_clean_level(unsigned int level);
-int __init lcd_init_driver(void);
-void __exit lcd_exit_driver(void);
+int lcd_init_driver(void);
+void lcd_exit_driver(void);
 int lcd_device_open(lcd_device_manager *dev);
 int lcd_device_release(lcd_device_manager *dev);
 int lcd_data_device_open(struct inode *, struct file *);
