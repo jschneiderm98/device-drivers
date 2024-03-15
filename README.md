@@ -88,17 +88,23 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 | 13 | 20/02/2023 | Defesa na banca de TCC1 |
 
 ## Cronograma TCC2
-[//]: # (:heavy_check_mark:)
 | Semana | Data inicial | Tarefa | Concluido |
 | - | - | - | - |
-| 01.0 | 27/10/2023 | Revisão do contéudo estudado no TCC1 |   |
-| 01.1 | 30/10/2023 | Estudo sobre o uso de interrupções em módulos do kernel |  |
-| 01.2 | 31/10/2023 | Estudo sobre o uso de comunicação serial em módulos do kernel |  |
-| 02 | 01/11/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 03 | 08/11/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 04 | 15/11/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 05 | 22/11/2023 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 06 | 29/11/2023 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers |  |
-| 07 | 06/12/2023 | Continuação da escrita dos Resultados e Discussões e Conclusão |  |
-| 08 | 13/12/2023 | Continuação da escrita da Introdução e do Resumo |  |
-| 09 | 20/12/2023 | Revisão textual e Defesa na banca de TCC2 |  |
+| 01.0 | 18/03/2024 | Revisão do contéudo estudado no TCC1 |   |
+| 02.1 | 25/03/2024 | Estudo sobre funcionamento do módulo RFID-RC522 |  |
+| 02.2 | 28/03/2024 | Estudo sobre o uso de comunicação serial em módulos do kernel |  |
+| 03 | 01/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 04 | 08/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 05 | 15/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 06 | 22/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 07 | 29/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 08 | 06/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 09 | 13/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 10 | 20/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 11 | 27/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 12 | 03/06/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
+| 13 | 10/06/2024 | Continuação da escrita dos Resultados e Discussões |  |
+| 14 | 17/06/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers |  |
+| 15 | 24/07/2024 | Continuação da escrita dos Introdução |  |
+| 16 | 01/07/2024 | Continuação da escrita da Conclusão e do Resumo |  |
+| 17 | 08/07/2024 | Revisão textual e Defesa na banca de TCC2 |  |
