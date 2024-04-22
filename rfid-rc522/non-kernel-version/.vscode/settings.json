@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "wiringpispi.h": "c",
+        "cstdlib": "c",
+        "wiringpi.h": "c",
+        "spi_interface.h": "c",
+        "rc522_controller.h": "c"
+    }
+}
