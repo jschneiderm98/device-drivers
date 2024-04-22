@@ -90,21 +90,21 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 ## Cronograma TCC2
 | Semana | Data inicial | Tarefa | Concluido |
 | - | - | - | - |
-| 01.0 | 18/03/2024 | Revisão do contéudo estudado no TCC1 |   |
-| 02.1 | 25/03/2024 | Estudo sobre funcionamento do módulo RFID-RC522 |  |
-| 02.2 | 28/03/2024 | Estudo sobre o uso de comunicação serial em módulos do kernel |  |
-| 03 | 01/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 04 | 08/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 05 | 15/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 06 | 22/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 07 | 29/04/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 08 | 06/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 09 | 13/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 10 | 20/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 11 | 27/05/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 12 | 03/06/2024 | Desenvolvimento do device-driver para o módulo RFID-RC522 |  |
-| 13 | 10/06/2024 | Continuação da escrita dos Resultados e Discussões |  |
-| 14 | 17/06/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers |  |
-| 15 | 24/07/2024 | Continuação da escrita dos Introdução |  |
-| 16 | 01/07/2024 | Continuação da escrita da Conclusão e do Resumo |  |
-| 17 | 08/07/2024 | Revisão textual e Defesa na banca de TCC2 |  |
+| 01.0 | 18/03/2024 | Revisão do contéudo estudado no TCC1 | <center>:white_check_mark:</center> |
+| 02.1 | 25/03/2024 | Estudo sobre funcionamento do módulo RFID-RC522 | <center>:white_check_mark:</center> |
+| 02.2 | 28/03/2024 | Estudo sobre o uso de comunicação serial em módulos do kernel | <center>:white_check_mark:</center> |
+| 03 | 01/04/2024 | Montagem do circuto e testes iniciais utilizando linguagem de alto nível (Python) com o módulo RFID-RC522 | <center>:white_check_mark:</center> |
+| 04 | 08/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:black_square_button:</center> |
+| 05 | 15/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:black_square_button:</center> |
+| 06 | 22/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:black_square_button:</center> |
+| 07 | 29/04/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:black_square_button:</center> |
+| 08 | 06/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:black_square_button:</center> |
+| 09 | 13/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura de dispositivos RFID | <center>:black_square_button:</center> |
+| 10 | 20/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura de dispositivos RFID | <center>:black_square_button:</center> |
+| 11 | 27/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, escrita de dispositivos RFID | <center>:black_square_button:</center> |
+| 12 | 03/06/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, escrita de dispositivos RFID | <center>:black_square_button:</center> |
+| 13 | 10/06/2024 | Continuação da escrita dos Resultados e Discussões |<center>:black_square_button:</center>  |
+| 14 | 17/06/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers | <center>:black_square_button:</center> |
+| 15 | 24/07/2024 | Continuação da escrita dos Introdução | <center>:black_square_button:</center> |
+| 16 | 01/07/2024 | Continuação da escrita da Conclusão e do Resumo | <center>:black_square_button:</center> |
+| 17 | 08/07/2024 | Revisão textual e Defesa na banca de TCC2 | <center>:black_square_button:</center> |
