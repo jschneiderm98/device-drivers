@@ -14,7 +14,7 @@ void spi_setup()
 
 void spi_read(char *buffer, size_t size) {
   if (size > MAX_SIZE) size = MAX_SIZE;
-  if (wiringPiSPIDataRW(SPI_CHAN, buffer, size))
+  if (wiringPiSPIDataRW(SPI_CHAN, buffer, size) == -1)
 	{
 	  printf ("Falha na comunicação SPI, função de leitura: %s\n", strerror (errno)) ;
 	  exit(EXIT_FAILURE);
@@ -23,7 +23,7 @@ void spi_read(char *buffer, size_t size) {
 
 void spi_write(char *data, size_t size) {
   if (size > MAX_SIZE) size = MAX_SIZE;
-  if (wiringPiSPIDataRW(SPI_CHAN, data, size))
+  if (wiringPiSPIDataRW(SPI_CHAN, data, size) == -1)
 	{
 	  printf ("Falha na comunicação SPI, função de escrita: %s\n", strerror (errno)) ;
 	  exit(EXIT_FAILURE);
