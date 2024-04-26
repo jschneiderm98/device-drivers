@@ -5,6 +5,15 @@
         "wiringpi.h": "c",
         "spi_interface.h": "c",
         "rc522_controller.h": "c",
-        "type_traits": "c"
-    }
+        "type_traits": "c",
+        "time.h": "c",
+        "unistd.h": "c"
+    },
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/julio/device-drivers/rfid-rc522/non-kernel-version",
+            "binaryPath": "/home/julio/device-drivers/rfid-rc522/non-kernel-version/main.out",
+            "binaryArgs": []
+        }
+    ]
 }

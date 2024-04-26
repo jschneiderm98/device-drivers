@@ -1,4 +1,7 @@
 #include "spi_interface.h"
+#include <unistd.h>
+#include <sys/time.h>
+#include <time.h>
 
 typedef enum mfrc522_registers {
     // Command and status registers
@@ -88,11 +91,30 @@ typedef enum rc522_commands {
     SoftReset = 0b1111,
 } rc522_commands;
 
+typedef enum picc_transceive_commands {
+    PICC_REQIDL = 0x26,
+    PICC_REQALL = 0x52,
+    PICC_ANTICOLL = 0x93,
+    PICC_SElECTTAG = 0x93,
+    PICC_AUTHENT1A = 0x60,
+    PICC_AUTHENT1B = 0x61,
+    PICC_READ = 0x30,
+    PICC_WRITE = 0xA0,
+    PICC_DECREMENT = 0xC0,
+    PICC_INCREMENT = 0xC1,
+    PICC_RESTORE = 0xC2,
+    PICC_TRANSFER = 0xB0,
+    PICC_HALT = 0x50,
+} picc_transceive_commands;
 
-void write_to_register(mfrc522_registers reg, char *data, size_t data_size);
-void write_to_register_int(mfrc522_registers reg, int data);
-void read_from_registers(mfrc522_registers reg, char **data, size_t data_size);
-char read_from_register(mfrc522_registers reg);
+
+void write_to_register_multiple(mfrc522_registers reg, uint8_t *data, size_t data_size);
+void write_to_register(mfrc522_registers reg, uint8_t data);
+void read_from_registers(mfrc522_registers reg, uint8_t **data, size_t data_size);
+uint8_t read_from_register(mfrc522_registers reg);
 void antenna_on();
 void init();
-char format_address_to_spi(mfrc522_registers reg, adress_bit_mode mode);
+uint8_t format_address_to_byte(mfrc522_registers reg, adress_bit_mode mode);
+void calculate_crc(uint8_t *data, size_t data_size, uint8_t *result);
+void self_test();
+void request_picc(uint8_t request_mode, uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits);

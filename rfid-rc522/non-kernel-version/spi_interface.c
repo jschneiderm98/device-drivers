@@ -12,7 +12,7 @@ void spi_setup()
   }
 }
 
-void spi_read(char *buffer, size_t size) {
+void spi_read(uint8_t *buffer, size_t size) {
   if (size > MAX_SIZE) size = MAX_SIZE;
   if (wiringPiSPIDataRW(SPI_CHAN, buffer, size) == -1)
 	{
@@ -21,7 +21,7 @@ void spi_read(char *buffer, size_t size) {
 	}
 }
 
-void spi_write(char *data, size_t size) {
+void spi_write(uint8_t *data, size_t size) {
   if (size > MAX_SIZE) size = MAX_SIZE;
   if (wiringPiSPIDataRW(SPI_CHAN, data, size) == -1)
 	{

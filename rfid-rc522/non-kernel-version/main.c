@@ -3,22 +3,17 @@
 
 int main(int argc, char const *argv[])
 {
+    uint8_t data[10] = {0x93, 0x70, 0x32, 0x52, 0xa1}, result[2];
+    uint8_t *res, res_size, res_size_bits;
     printf("Realizando o setup do SPI\n");
     spi_setup();
-    printf("Primeira leitura\n");
-    read_from_register(Status1Reg);
-    printf("Escrita 1\n");
-    write_to_register_int(TPrescalerReg, 0x3E);
-    printf("Segunda leitura\n");
-    read_from_register(TPrescalerReg);
-    printf("Terceira leitura\n");
-    read_from_register(TPrescalerReg);
-    printf("Escrita 2\n");
-    write_to_register_int(TPrescalerReg, 0x3F);
-    printf("Quarta leitura\n");
-    read_from_register(TPrescalerReg);
-    printf("Quarta leitura\n");
-    read_from_register(TPrescalerReg);
-    printf("Fim");
+    init();
+
+    request_picc(PICC_REQIDL, &res, &res_size, &res_size_bits);
+    printf("res_size: %u\n", res_size);
+    printf("res_size: %u\n", res_size_bits);
+    //calculate_crc(data, 5, result);
+    //self_test();
+    printf("Fim\n");
     return 0;
 }
