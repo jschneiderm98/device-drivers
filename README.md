@@ -94,9 +94,9 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 | 02.1 | 25/03/2024 | Estudo sobre funcionamento do módulo RFID-RC522 | <center>:white_check_mark:</center> |
 | 02.2 | 28/03/2024 | Estudo sobre o uso de comunicação serial em módulos do kernel | <center>:white_check_mark:</center> |
 | 03 | 01/04/2024 | Montagem do circuto e testes iniciais utilizando linguagem de alto nível (Python) com o módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 04 | 08/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:black_square_button:</center> |
-| 05 | 15/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:black_square_button:</center> |
-| 06 | 22/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:black_square_button:</center> |
+| 04 | 08/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
+| 05 | 15/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
+| 06 | 22/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
 | 07 | 29/04/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:black_square_button:</center> |
 | 08 | 06/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:black_square_button:</center> |
 | 09 | 13/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura de dispositivos RFID | <center>:black_square_button:</center> |
