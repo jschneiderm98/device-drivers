@@ -10,6 +10,7 @@
 #define	SPI_CHAN 0
 #define	MAX_SIZE 2000
 #define SPI_SPEED 1000000
+#define RC522_RST_PIN 6
 
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
 #define BYTE_TO_BINARY(byte)  \
@@ -26,3 +27,5 @@
 void spi_setup();
 void spi_read(uint8_t *buffer, size_t size);
 void spi_write(uint8_t *data, size_t size);
+void setup_reset_pin();
+void cleanup_spi();

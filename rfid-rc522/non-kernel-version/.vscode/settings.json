@@ -7,7 +7,9 @@
         "rc522_controller.h": "c",
         "type_traits": "c",
         "time.h": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c"
     },
     "makefile.launchConfigurations": [
         {

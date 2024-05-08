@@ -91,13 +91,20 @@ typedef enum rc522_commands {
     SoftReset = 0b1111,
 } rc522_commands;
 
+typedef enum rc522_status {
+    RC522_OK = 0,
+    RC522_NOTAGERR = 1,
+    RC522_ERR = 2,
+    RC522_TIMEOUT = 3,
+    RC522_FAILED_UID_CHECK = 4,
+    RC522_FAILED_CRC_CHECK = 5
+} rc522_status;
+
 typedef enum picc_transceive_commands {
     PICC_REQIDL = 0x26,
     PICC_REQALL = 0x52,
     PICC_ANTICOLL = 0x93,
     PICC_SElECTTAG = 0x93,
-    PICC_AUTHENT1A = 0x60,
-    PICC_AUTHENT1B = 0x61,
     PICC_READ = 0x30,
     PICC_WRITE = 0xA0,
     PICC_DECREMENT = 0xC0,
@@ -107,14 +114,28 @@ typedef enum picc_transceive_commands {
     PICC_HALT = 0x50,
 } picc_transceive_commands;
 
+typedef enum picc_auth_commands {
+    PICC_AUTHENT1A = 0x60,
+    PICC_AUTHENT1B = 0x61,
+} picc_auth_commands;
+
 
 void write_to_register_multiple(mfrc522_registers reg, uint8_t *data, size_t data_size);
 void write_to_register(mfrc522_registers reg, uint8_t data);
 void read_from_registers(mfrc522_registers reg, uint8_t **data, size_t data_size);
 uint8_t read_from_register(mfrc522_registers reg);
+void set_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set);
+void clear_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set);
 void antenna_on();
-void init();
+uint8_t init();
+void cleanup();
 uint8_t format_address_to_byte(mfrc522_registers reg, adress_bit_mode mode);
-void calculate_crc(uint8_t *data, size_t data_size, uint8_t *result);
+rc522_status calculate_crc(uint8_t *data, size_t data_size, uint8_t *result);
 void self_test();
-void request_picc(uint8_t request_mode, uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits);
+rc522_status req_a_picc(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits);
+rc522_status anticollision(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits);
+rc522_status select_tag(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid);
+rc522_status authenticate(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid);
+rc522_status read_block(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
+uint64_t convert_uid_to_number(uint8_t *uid);
+void stop_authentication();
