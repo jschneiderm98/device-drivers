@@ -328,6 +328,39 @@ rc522_status read_block(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits
     return RC522_OK;
 }
 
+rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr) {
+    uint8_t *buffer = malloc(4);
+    rc522_status status;
+    buffer[0] = PICC_WRITE;
+    buffer[1] = blockAddr;
+    status = calculate_crc(buffer, 2, buffer+2);
+    if(status != RC522_OK) return status;
+
+    status = send_command(Transceive, buffer, 4, res, res_size, res_size_bits, 0);
+    free(buffer);
+    if(status != RC522_OK) return status;
+    buffer = malloc(18); // 16 bytes of data + 2 of crc
+    free(*res);
+    *res_size = 0;
+    *res_size_bits = 0;
+    if(data_size < 16) {
+        memcpy(buffer, data, data_size);
+        for (uint8_t i = data_size; i < 16; i++)
+        {
+            buffer[i] = ' ';
+        }
+    }
+    else {
+        memcpy(buffer, data, 16);
+    }
+    status = calculate_crc(buffer, 16, buffer+16);
+    if(status != RC522_OK) return status;
+
+    status = send_command(Transceive, buffer, 18, res, res_size, res_size_bits, 1);
+    //if(*res_size != 16) return RC522_ERR;
+    return RC522_OK;
+}
+
 void stop_authentication() {
     clear_bits_in_reg(Status2Reg, 0x08);
 }

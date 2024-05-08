@@ -137,5 +137,6 @@ rc522_status anticollision(uint8_t **res, uint8_t *res_size, uint8_t *res_size_b
 rc522_status select_tag(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid);
 rc522_status authenticate(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid);
 rc522_status read_block(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
+rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
 uint64_t convert_uid_to_number(uint8_t *uid);
 void stop_authentication();
