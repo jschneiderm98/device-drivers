@@ -11,10 +11,10 @@ sudo reboot
 ```
 
 ```bash
-sudo wget https://raw.githubusercontent.com/notro/rpi-source/master/rpi-source -O /usr/bin/rpi-source
-sudo chmod +x /usr/bin/rpi-source
-python2 /usr/bin/rpi-source -q --tag-update
-python2 /usr/bin/rpi-source
+sudo wget https://raw.githubusercontent.com/RPi-Distro/rpi-source/master/rpi-source -O /usr/local/bin/rpi-source
+sudo chmod +x /usr/local/bin/rpi-source
+/usr/local/bin/rpi-source -q --tag-update
+rpi-source
 sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/build
 ```
 
@@ -97,11 +97,11 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 | 04 | 08/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
 | 05 | 15/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
 | 06 | 22/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 07 | 29/04/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:black_square_button:</center> |
-| 08 | 06/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:black_square_button:</center> |
-| 09 | 13/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura de dispositivos RFID | <center>:black_square_button:</center> |
-| 10 | 20/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura de dispositivos RFID | <center>:black_square_button:</center> |
-| 11 | 27/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, escrita de dispositivos RFID | <center>:black_square_button:</center> |
+| 07 | 29/04/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:white_check_mark:</center> |
+| 08 | 06/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:white_check_mark:</center> |
+| 09 | 13/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura e escrita de registradores | <center>:white_check_mark:</center> |
+| 10 | 20/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, Self test RC522 | <center>:black_square_button:</center> |
+| 11 | 27/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura de dispositivos RFID | <center>:black_square_button:</center> |
 | 12 | 03/06/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, escrita de dispositivos RFID | <center>:black_square_button:</center> |
 | 13 | 10/06/2024 | Continuação da escrita dos Resultados e Discussões |<center>:black_square_button:</center>  |
 | 14 | 17/06/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers | <center>:black_square_button:</center> |

@@ -1,0 +1,9 @@
+[
+    {"version": "0x12", "PCD_version": "Counterfeit"},
+    {"version": "0xb2", "PCD_version": "FM17522_1"},
+    {"version": "0x88", "PCD_version": "FM17522"},
+    {"version": "0x89", "PCD_version": "FM17522E"},
+    {"version": "0x90", "PCD_version": "0_0"},
+    {"version": "0x91", "PCD_version": "1_0"},
+    {"version": "0x92", "PCD_version": "2_0"}
+]

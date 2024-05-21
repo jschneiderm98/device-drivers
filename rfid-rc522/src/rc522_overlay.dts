@@ -1,0 +1,33 @@
+/dts-v1/; 
+/plugin/; 
+/{ 
+    fragment@0 { 
+        target = <&spidev0>; 
+        __overlay__ { 
+            status = "disabled";
+        }; 
+    };
+
+    fragment@1 { 
+        target = <&spidev1>; 
+        __overlay__ { 
+            status = "disabled";
+        }; 
+    };
+
+    fragment@2 { 
+        target = <&spi0>; 
+        __overlay__ { 
+            status = "okay"; 
+
+            rc522: rc522@0 { 
+                compatible = "mytest,rc522";
+                status = "okay"; 
+                reg = <0x0>; 
+                spi-max-frequency = <10000000>;
+            }; 
+         }; 
+    };
+
+    
+};

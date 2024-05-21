@@ -1,1 +1,0 @@
-#define __init	__attribute__((__stub__))

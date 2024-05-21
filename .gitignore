@@ -1,0 +1,16 @@
+**/**.ko       
+**/**.mod.c     
+**/.**.mod.o.cmd  
+**/Module.symvers
+**/.**.ko.cmd  
+**/.**.mod.cmd  
+**/**.o           
+**/modules.order       
+**/.Module.symvers.cmd
+**/**.mod      
+**/**.mod.o     
+**/.**.o.cmd      
+**/.modules.order.cmd
+**/.**.o.d
+__pycache__
+.vscode

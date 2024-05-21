@@ -168,7 +168,7 @@ int __init lcd_init_driver(void)
 	}
 
 	// Registrar a classe do dispositivo
-	lcd_device_driver_Class = class_create(THIS_MODULE, CLASS_NAME);
+	lcd_device_driver_Class = class_create(CLASS_NAME);
 	if(IS_ERR(lcd_device_driver_Class)) // Se houve erro no registro
 	{
 		lcd_module_clean_level(CLEAN_CDEV_CONFIG);
