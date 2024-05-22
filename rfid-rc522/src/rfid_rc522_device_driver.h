@@ -141,3 +141,8 @@ typedef enum picc_auth_commands {
 void rc522_reset(void);
 void antenna_on(void);
 uint8_t rc522_pcd_setup(void);
+void rc522_self_test(void);
+void write_to_register(mfrc522_registers reg, uint8_t data);
+void write_to_register_multiple(mfrc522_registers reg, uint8_t *data, size_t data_size);
+uint8_t read_from_register(mfrc522_registers reg);
+void read_from_register_multiple(mfrc522_registers reg, uint8_t **res, size_t num_reads);

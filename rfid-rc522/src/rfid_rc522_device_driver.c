@@ -4,6 +4,7 @@
 #include <linux/of.h>
 #include <linux/gpio.h>
 #include <linux/slab.h>
+#include <linux/delay.h>
 
 #include "rfid_rc522_device_driver.h"
 
@@ -19,8 +20,8 @@ uint8_t format_address_to_byte(mfrc522_registers reg, adress_bit_mode mode) {
 
 void write_to_register(mfrc522_registers reg, uint8_t data) {
     uint8_t *message = kmalloc(2, GFP_KERNEL);
-    message[0] = format_address_to_byte(reg, address_read_mode);
-    message[1] = 0x00;
+    message[0] = format_address_to_byte(reg, address_write_mode);
+    message[1] = data;
 
     struct spi_transfer t = {
         .tx_buf = message,
@@ -31,13 +32,35 @@ void write_to_register(mfrc522_registers reg, uint8_t data) {
     spi_message_init(&spi_m);
     spi_message_add_tail(&t, &spi_m);
 
-    printk(KERN_INFO "Escrevendo dados via spi\n");
     int ret = spi_sync(rc522_spi_dev, &spi_m);
     
     if (ret < 0) {
         printk(KERN_ERR "Erro ao enviar dados via SPI\n");
     }
     kfree(message);
+}
+
+void write_to_register_multiple(mfrc522_registers reg, uint8_t *data, size_t data_size) {
+    uint8_t *buffer = kmalloc(data_size+1, GFP_KERNEL);// byte0 - address, bytes 1-n - data
+    memcpy(buffer+1, data, data_size);
+    buffer[0] = format_address_to_byte(reg, address_write_mode);
+
+    struct spi_transfer t = {
+        .tx_buf = buffer,
+        .len = data_size + 1,
+    };
+
+    struct spi_message spi_m;
+    spi_message_init(&spi_m);
+    spi_message_add_tail(&t, &spi_m);
+
+    int ret = spi_sync(rc522_spi_dev, &spi_m);
+    
+    if (ret < 0) {
+        printk(KERN_ERR "Erro ao enviar dados via SPI\n");
+    }
+
+    kfree(buffer);
 }
 
 uint8_t read_from_register(mfrc522_registers reg) {
@@ -56,7 +79,6 @@ uint8_t read_from_register(mfrc522_registers reg) {
     spi_message_init(&spi_m);
     spi_message_add_tail(&t, &spi_m);
 
-    printk(KERN_INFO "Lendo dados via spi\n");
     int ret = spi_sync(rc522_spi_dev, &spi_m);
     
     if (ret < 0) {
@@ -64,10 +86,39 @@ uint8_t read_from_register(mfrc522_registers reg) {
         return ret;
     }
     uint8_t res = message_res[1];
-    printk(KERN_INFO "Dados recebidos: "BYTE_TO_BINARY_PATTERN"\n", BYTE_TO_BINARY(res));
     kfree(message_res);
     kfree(message);
     return res;
+}
+
+void read_from_register_multiple(mfrc522_registers reg, uint8_t **res, size_t num_reads) {
+    uint8_t *buffer = kmalloc(num_reads+1, GFP_KERNEL);
+    (*res) = kmalloc(num_reads+1, GFP_KERNEL);
+    uint8_t reg_formatted = format_address_to_byte(reg, address_read_mode);
+
+    for (size_t i = 0; i < num_reads; i++)
+    {
+        buffer[i] = reg_formatted;
+    }
+    buffer[num_reads] = 0x00;
+
+    struct spi_transfer t = {
+        .tx_buf = buffer,
+        .rx_buf = (*res),
+        .len = num_reads+1,
+    };
+
+    struct spi_message spi_m;
+    spi_message_init(&spi_m);
+    spi_message_add_tail(&t, &spi_m);
+
+    int ret = spi_sync(rc522_spi_dev, &spi_m);
+    
+    if (ret < 0) {
+        printk(KERN_ERR "Erro ao ler dados via SPI\n");
+    }
+    (*res) = (*res) + 1;
+    kfree(buffer);
 }
 
 void set_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set) {
@@ -108,14 +159,51 @@ uint8_t rc522_pcd_setup(void) {
     return read_from_register(VersionReg);
 }
 
+void rc522_self_test(void) {
+    rc522_reset();
+
+    uint8_t *buffer = kmalloc(25, GFP_KERNEL);
+    for (uint8_t i = 0; i < 25; i++)
+    {   
+        buffer[i] = 0x00;
+    }
+    
+    //write the data to FIFO Buffer
+    write_to_register_multiple(FIFODataReg, buffer, 25);
+    
+    set_bits_in_reg(FIFOLevelReg, 0x80);
+
+    write_to_register(AutoTestReg, 0x09);
+    write_to_register(FIFODataReg, 0x00);
+    write_to_register(CommandReg, CalcCRC);
+    usleep_range(15000, 25000);
+    kfree(buffer);
+    read_from_register_multiple(FIFODataReg, &buffer, 64);
+    for (size_t i = 0; i < 8; i++)
+    {   
+        printk(
+            KERN_INFO "0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x 0x%.2x", 
+            buffer[i*8], 
+            buffer[(i*8)+1], 
+            buffer[(i*8)+2], 
+            buffer[(i*8)+3], 
+            buffer[(i*8)+4], 
+            buffer[(i*8)+5], 
+            buffer[(i*8)+6], 
+            buffer[(i*8)+7]
+        );
+    }
+    rc522_reset();
+}
+
 static int rc522_spi_probe(struct spi_device *spi)
 {
     printk(KERN_INFO "Probe Chamado\n");
-    if(!spi) MSG_BAD("null spi", -1L);
     rc522_spi_dev = spi;
 
-    uint8_t version = rc522_pcd_setup();
-    printk(KERN_INFO "Version byte 0x%x\n", version);
+    //uint8_t version = rc522_pcd_setup();
+    //printk(KERN_INFO "Version byte 0x%x\n", version);
+    rc522_self_test();
 
     return 0;
 }
