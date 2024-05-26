@@ -8,7 +8,17 @@ dtc -@ -I dts -O dtb -o rc522_overlay.dtbo rc522_overlay.dts
 
 Isso vai gerar o arquivo `rc522_overlay.dtbo`
 
-## Check if overlay is supported
+## Insert in device-tree
+
+### Using dtoverlay
+
+```shell
+dtoverlay -d . rc522_overlay.dtbo
+```
+
+### Using configs of_overlay
+
+#### Check if overlay is supported
 
 ```shell
 sudo modprobe configs
@@ -26,7 +36,7 @@ zcat /proc/config.gz | grep OF_OVERLAY
 
 Should result in line `CONFIG_OF_OVERLAY=y`.
 
-## Insert tree using configs
+#### Insert tree using configs
 
 ```shell
 mount -t configfs none /sys/kernel/config
@@ -39,7 +49,7 @@ mkdir /sys/kernel/config/device-tree/overlays/rc522
 cat rc522_overlay.dtbo > /sys/kernel/config/device-tree/overlays/rc522/dtbo
 ```
 
-## Remove device-tree overlay
+#### Remove device-tree overlay
 
 ```shell
 rmdir /sys/kernel/config/device-tree/overlays/rc522

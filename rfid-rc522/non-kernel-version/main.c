@@ -36,20 +36,27 @@ rc522_status read_data_from_card(uint8_t *key, uint8_t key_size, uint8_t **buffe
         
         status = req_a_picc(&req_res, &res_size, &res_size_bits);
         if(status != RC522_OK) return status;
+        printf("req_a_picc:\n");
+        print_array(req_res, res_size);
 
         res_size = 0, res_size_bits = 0;
         status = anticollision(&uid, &res_size, &res_size_bits);
         if(status != RC522_OK) return status;
-
+        printf("anticollision:\n");
+        print_array(uid, res_size);
         printf("id: %llu\n", convert_uid_to_number(uid));
 
         res_size = 0, res_size_bits = 0;
         status = select_tag(&select_tag_res, &res_size, &res_size_bits, uid);
         if(status != RC522_OK) return status;
+        printf("select_tag:\n");
+        print_array(select_tag_res, res_size);
 
         res_size = 0, res_size_bits = 0;
         status = authenticate(&auth_res, &res_size, &res_size_bits, PICC_AUTHENT1A, 11, key, 6, uid);
         if(status != RC522_OK) return status;
+        printf("authenticate:\n");
+        print_array(auth_res, res_size);
 
         *buffer_size = 0;
         *buffer = malloc(16*3);
@@ -86,7 +93,7 @@ rc522_status read_data_from_card(uint8_t *key, uint8_t key_size, uint8_t **buffe
     }
 }
 
-rc522_status write_data_from_card(uint8_t *key, uint8_t key_size, uint8_t *buffer, uint8_t buffer_size) {
+rc522_status write_data_to_card(uint8_t *key, uint8_t key_size, uint8_t *buffer, uint8_t buffer_size) {
 
     uint8_t block_addres[3] = {8, 9, 10};
 
@@ -102,7 +109,7 @@ rc522_status write_data_from_card(uint8_t *key, uint8_t key_size, uint8_t *buffe
         res_size = 0, res_size_bits = 0;
         status = anticollision(&uid, &res_size, &res_size_bits);
         if(status != RC522_OK) return status;
-
+        
         printf("id: %llu\n", convert_uid_to_number(uid));
 
         res_size = 0, res_size_bits = 0;
@@ -161,8 +168,8 @@ int main(int argc, char const *argv[])
     init();
 
     uint8_t temp = 0;
-    while(write_data_from_card(key, 6, send_data, 26) != RC522_OK){}
-    print_array(data, data_size);
+    while(read_data_from_card(key, 6, &data, &data_size) != RC522_OK){}
+    print_as_char(data, data_size);
     cleanup();
     printf("\n");
     //calculate_crc(data, 5, result);
