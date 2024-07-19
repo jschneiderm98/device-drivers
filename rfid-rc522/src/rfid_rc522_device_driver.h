@@ -1,6 +1,7 @@
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/types.h>
+#include "rfid_rc522_drive_ioctl.h"
 
 #define DEVICE_NAME "rfid_rc522_driver"
 #define CLASS_NAME  "rfid_rc522_driver_class"
@@ -110,15 +111,6 @@ typedef enum rc522_commands {
     SoftReset = 0b1111,
 } rc522_commands;
 
-typedef enum rc522_status {
-    RC522_OK = 0,
-    RC522_NOTAGERR = 1,
-    RC522_ERR = 2,
-    RC522_TIMEOUT = 3,
-    RC522_FAILED_UID_CHECK = 4,
-    RC522_FAILED_CRC_CHECK = 5
-} rc522_status;
-
 typedef enum picc_transceive_commands {
     PICC_REQIDL = 0x26,
     PICC_REQALL = 0x52,
@@ -133,10 +125,31 @@ typedef enum picc_transceive_commands {
     PICC_HALT = 0x50,
 } picc_transceive_commands;
 
+typedef enum rc522_cleanup_level {
+    RC522_CLEAN_MAJOR,
+    RC522_CLEAN_CLASS,
+    RC522_CLEAN_DEVICE,
+    RC522_CLEAN_GPIO,
+    RC522_CLEAN_ALL,
+} rc522_cleanup_level;
+
 typedef enum picc_auth_commands {
     PICC_AUTHENT1A = 0x60,
     PICC_AUTHENT1B = 0x61,
 } picc_auth_commands;
+
+typedef struct rc522_device_manager
+{
+    int Device_Open;    // Device aberto? Usado para prevenir acesso multiplo ao device
+    int Device_Counter; // Posicao do arquivo para leitura e escrita
+    struct device* driver_device;
+    struct file_operations fops;
+    dev_t dev_number;
+} rc522_device_manager;
+
+int rc522_char_device_open(struct inode *inode, struct file *file);
+int rc522_char_device_release(struct inode *inode, struct file *file);
+long int rc522_char_device_ioctl(struct file *file, unsigned cmd, unsigned long arg);
 
 void rc522_reset(void);
 void antenna_on(void);
