@@ -129,7 +129,6 @@ typedef enum rc522_cleanup_level {
     RC522_CLEAN_MAJOR,
     RC522_CLEAN_CLASS,
     RC522_CLEAN_DEVICE,
-    RC522_CLEAN_GPIO,
     RC522_CLEAN_ALL,
 } rc522_cleanup_level;
 
@@ -141,11 +140,12 @@ typedef enum picc_auth_commands {
 typedef struct rc522_device_manager
 {
     int Device_Open;    // Device aberto? Usado para prevenir acesso multiplo ao device
-    int Device_Counter; // Posicao do arquivo para leitura e escrita
     struct device* driver_device;
     struct file_operations fops;
     dev_t dev_number;
 } rc522_device_manager;
+
+void rc522_clean(rc522_cleanup_level level);
 
 int rc522_char_device_open(struct inode *inode, struct file *file);
 int rc522_char_device_release(struct inode *inode, struct file *file);
@@ -160,18 +160,18 @@ uint8_t format_address_to_byte(mfrc522_registers reg, adress_bit_mode mode);
 void write_to_register(mfrc522_registers reg, uint8_t data);
 void write_to_register_multiple(mfrc522_registers reg, uint8_t *data, size_t data_size);
 uint8_t read_from_register(mfrc522_registers reg);
-void read_from_register_multiple(mfrc522_registers reg, uint8_t **res, size_t num_reads);
+void read_from_register_multiple(mfrc522_registers reg, uint8_t *res, size_t num_reads);
 void clear_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set);
 void set_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set);
 
 int isCrcOperationDone(void);
 uint8_t is_crc_from_picc_valid(uint8_t *data, uint8_t data_size);
-rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t **response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc);
+rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t *response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc);
 rc522_status calculate_crc(uint8_t *data, size_t data_size, uint8_t *result);
-rc522_status req_a_picc(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits);
-rc522_status anticollision(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits);
-rc522_status select_tag(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid);
-rc522_status authenticate(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid);
+rc522_status req_a_picc(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits);
+rc522_status anticollision(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits);
+rc522_status select_tag(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid);
+rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid);
 void stop_authentication(void);
-rc522_status read_block(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
-rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
+rc522_status read_block(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
+rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);

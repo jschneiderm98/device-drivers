@@ -16,7 +16,6 @@ static struct gpio rc522_rst_pin = {  RC522_RST_PIN, GPIOF_OUT_INIT_HIGH, "EN" }
 
 rc522_device_manager rc522_char_device = {
 	.Device_Open = 0,
-	.Device_Counter = 0,
 	.fops = {
         .unlocked_ioctl = rc522_char_device_ioctl,
 		.open = rc522_char_device_open,
@@ -105,20 +104,20 @@ uint8_t read_from_register(mfrc522_registers reg) {
     return res;
 }
 
-void read_from_register_multiple(mfrc522_registers reg, uint8_t **res, size_t num_reads) {
-    uint8_t *buffer = kmalloc(num_reads+1, GFP_KERNEL);
-    (*res) = kmalloc(num_reads+1, GFP_KERNEL);
+void read_from_register_multiple(mfrc522_registers reg, uint8_t *res, size_t num_reads) {
+    uint8_t *req_buffer = kmalloc(num_reads+1, GFP_KERNEL);
+    uint8_t *res_buffer = kmalloc(num_reads+1, GFP_KERNEL);
     uint8_t reg_formatted = format_address_to_byte(reg, address_read_mode);
 
     for (size_t i = 0; i < num_reads; i++)
     {
-        buffer[i] = reg_formatted;
+        req_buffer[i] = reg_formatted;
     }
-    buffer[num_reads] = 0x00;
+    req_buffer[num_reads] = 0x00;
 
     struct spi_transfer t = {
-        .tx_buf = buffer,
-        .rx_buf = (*res),
+        .tx_buf = req_buffer,
+        .rx_buf = res_buffer,
         .len = num_reads+1,
     };
 
@@ -131,8 +130,11 @@ void read_from_register_multiple(mfrc522_registers reg, uint8_t **res, size_t nu
     if (ret < 0) {
         printk(KERN_ERR "Erro ao ler dados via SPI\n");
     }
-    (*res) = (*res) + 1;
-    kfree(buffer);
+
+    memcpy(res, res_buffer + 1, num_reads);
+
+    kfree(req_buffer);
+    kfree(res_buffer);
 }
 
 void set_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set) {
@@ -182,7 +184,6 @@ uint8_t is_crc_from_picc_valid(uint8_t *data, uint8_t data_size) {
 
     calculate_crc(data, data_size_without_crc, result);
     
-    set_bits_in_reg(FIFOLevelReg, 0x80);
     if(data[crc_position] != result[0] || data[crc_position+1] != result[1]) return 0;
     return 1;
 }
@@ -198,6 +199,10 @@ uint8_t is_uid_valid_picc(uint8_t *uid) {
 
 void rc522_reset(void) {
     write_to_register(CommandReg, SoftReset);
+    uint8_t countTries = 0;
+    do {
+        msleep(50);
+    } while((read_from_register(CommandReg) & (1 << 4)) && ((++countTries) < 3));
 }
 
 void rc522_antenna_on(void) 
@@ -227,7 +232,7 @@ uint8_t rc522_pcd_setup(void) {
 void rc522_self_test(void) {
     rc522_reset();
 
-    uint8_t *buffer = kmalloc(25, GFP_KERNEL);
+    uint8_t *buffer = kmalloc(64, GFP_KERNEL);
     for (uint8_t i = 0; i < 25; i++)
     {   
         buffer[i] = 0x00;
@@ -242,8 +247,7 @@ void rc522_self_test(void) {
     write_to_register(FIFODataReg, 0x00);
     write_to_register(CommandReg, CalcCRC);
     usleep_range(15000, 25000);
-    kfree(buffer);
-    read_from_register_multiple(FIFODataReg, &buffer, 64);
+    read_from_register_multiple(FIFODataReg, buffer, 64);
     for (size_t i = 0; i < 8; i++)
     {   
         printk(
@@ -259,12 +263,13 @@ void rc522_self_test(void) {
         );
     }
     rc522_reset();
+    kfree(buffer);
 }
 
-rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t **response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc) {
+rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t *response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc) {
     uint8_t irqEn = 0x00;
     uint8_t waitIrq = 0x00;
-
+    uint8_t numFIFOBytes = 0;
     //uint8_t tx_last_bits = valid_bits ? valid_bits : 0;
     //uint8_t bit_framing = tx_last_bits;
 
@@ -309,22 +314,32 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
     }
     if(read_from_register(ComIrqReg) & irqEn & 0x01) return RC522_NOTAGERR;
 
-    *response_size = read_from_register(FIFOLevelReg);
+    numFIFOBytes = read_from_register(FIFOLevelReg);
     uint8_t last_bits = read_from_register(ControlReg) & 0b00000111;
-    if(*response_size > 0) {
-        read_from_register_multiple(FIFODataReg, response, *response_size);
+    if(numFIFOBytes > 0) {
+        uint8_t *buffer = kmalloc(numFIFOBytes, GFP_KERNEL);
+        read_from_register_multiple(FIFODataReg, buffer, numFIFOBytes);
+        if (numFIFOBytes > *response_size) {
+            kfree(buffer);
+            printk(KERN_WARNING "RC522_BUFFER_TOO_SMALL");
+            return RC522_BUFFER_TOO_SMALL;
+        }
+        memcpy(response, buffer, numFIFOBytes);
+        *response_size = numFIFOBytes;
         *response_size_bits = last_bits ? ((*response_size) - 1) * 8 + last_bits : (*response_size)*8;
+        kfree(buffer);
     }
 
     if(!should_check_crc) return RC522_OK;
 
-    if (*response_size < 3 || !is_crc_from_picc_valid(*response, *response_size)) return RC522_FAILED_CRC_CHECK;
+    if (*response_size < 3 || !is_crc_from_picc_valid(response, *response_size)) return RC522_FAILED_CRC_CHECK;
      
     return RC522_OK;
 }
 
-rc522_status req_a_picc(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits) {
+rc522_status req_a_picc(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits) {
     uint8_t req_mode = PICC_REQIDL;
+    clear_bits_in_reg(CollReg, 0x80);
     write_to_register(BitFramingReg, 0x07);
 
     rc522_status status = send_command(Transceive, &req_mode, 1, res, res_size, res_size_bits, 0);
@@ -334,19 +349,19 @@ rc522_status req_a_picc(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits
     return RC522_OK;
 }
 
-rc522_status anticollision(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits) {
+rc522_status anticollision(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits) {
     uint8_t data[2] = { PICC_ANTICOLL, 0x20 };
     write_to_register(BitFramingReg, 0x00);
     rc522_status status = send_command(Transceive, data, 2, res, res_size, res_size_bits, 0);
 
     if(status != RC522_OK) return status;
     if(*res_size != 5) return RC522_ERR;
-    if(!is_uid_valid_picc(*res)) return RC522_FAILED_UID_CHECK;
+    if(!is_uid_valid_picc(res)) return RC522_FAILED_UID_CHECK;
 
     return RC522_OK;
 }
 
-rc522_status select_tag(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid) {
+rc522_status select_tag(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid) {
     uint8_t *buffer = kmalloc(9, GFP_KERNEL);
     buffer[0] = PICC_SElECTTAG;
     buffer[1] = 0x70;
@@ -362,9 +377,9 @@ rc522_status select_tag(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits
     return RC522_OK;
 }
 
-rc522_status authenticate(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid) {
+rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid) {
+    // 1 for the auth_mode and 1 for address, and 4 for the first 4 bytes of uid
     uint8_t buffer_size = 2 + sector_key_size + 4;
-    // size = 2 + sector_key_size + 4;1 for the auth_mode and 1 for address, and 4 for the first 4 bytes of uid
     uint8_t *buffer = kmalloc(buffer_size, GFP_KERNEL);
     buffer[0] = auth_mode;
     buffer[1] = block_address;
@@ -383,7 +398,7 @@ void stop_authentication(void) {
     clear_bits_in_reg(Status2Reg, 0x08);
 }
 
-rc522_status read_block(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr) {
+rc522_status read_block(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr) {
     uint8_t *buffer = kmalloc(4, GFP_KERNEL);
     rc522_status status;
     buffer[0] = PICC_READ;
@@ -394,281 +409,54 @@ rc522_status read_block(uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits
     status = send_command(Transceive, buffer, 4, res, res_size, res_size_bits, 1);
     kfree(buffer);
     if(status != RC522_OK) return status;
-    *res_size = (*res_size) - 2;//ignore crc bits
-    //if(*res_size != 16) return RC522_ERR;
+
     return RC522_OK;
 }
 
-rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t **res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr) {
-    uint8_t *buffer = kmalloc(4, GFP_KERNEL);
+rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr) {
+    uint8_t *buffer = kmalloc(4, GFP_KERNEL), buffer_res_size = 1, buffer_res_size_bits;
+    uint8_t *buffer_res  = kmalloc(buffer_res_size, GFP_KERNEL);
+    uint8_t *data_buffer;
     rc522_status status;
     buffer[0] = PICC_WRITE;
     buffer[1] = blockAddr;
+
     status = calculate_crc(buffer, 2, buffer+2);
     if(status != RC522_OK) return status;
+    status = send_command(Transceive, buffer, 4, buffer_res, &buffer_res_size, &buffer_res_size_bits, 0);
 
-    status = send_command(Transceive, buffer, 4, res, res_size, res_size_bits, 0);
     kfree(buffer);
+    kfree(buffer_res);
+
     if(status != RC522_OK) return status;
-    buffer = kmalloc(18, GFP_KERNEL); // 16 bytes of data + 2 of crc
-    kfree(*res);
-    *res_size = 0;
-    *res_size_bits = 0;
+
+    data_buffer = kmalloc(18, GFP_KERNEL);
     if(data_size < 16) {
-        memcpy(buffer, data, data_size);
+        memcpy(data_buffer, data, data_size);
         for (uint8_t i = data_size; i < 16; i++)
         {
-            buffer[i] = ' ';
+            data_buffer[i] = ' ';
         }
     }
     else {
-        memcpy(buffer, data, 16);
+        memcpy(data_buffer, data, 16);
     }
-    status = calculate_crc(buffer, 16, buffer+16);
+    status = calculate_crc(data_buffer, 16, data_buffer+16);
     if(status != RC522_OK) return status;
 
-    status = send_command(Transceive, buffer, 18, res, res_size, res_size_bits, 1);
+    status = send_command(Transceive, data_buffer, 18, res, res_size, res_size_bits, 0);
+    kfree(data_buffer);
     //if(*res_size != 16) return RC522_ERR;
-    return RC522_OK;
+    return status;
 }
 
 
 static int rc522_spi_probe(struct spi_device *spi)
 {
+    int ret, result;
     printk(KERN_INFO "Probe Chamado\n");
     rc522_spi_dev = spi;
-
-    uint8_t version = rc522_pcd_setup();
-    printk(KERN_INFO "Version byte 0x%x\n", version);
-
-    return 0;
-}
-
-static void rc522_spi_remove(struct spi_device *spi)
-{
-    // Limpar qualquer recurso alocado
-}
-
-static const struct spi_device_id rc522_spi_idtable[] = {
-    {"rc522", 2},
-    {},
-};
-
-MODULE_DEVICE_TABLE(spi, rc522_spi_idtable);
-
-static const struct of_device_id rc522_spi_of_match[] = {
-    {
-        .compatible = "mytest,rc522",
-    },
-    {},
-};
-
-MODULE_DEVICE_TABLE(of, rc522_spi_of_match);
-
-static struct spi_driver rc522_spi_driver = {
-    .driver = {
-        .name = "rc522_spi_device",
-        .owner = THIS_MODULE,
-        .of_match_table = of_match_ptr(rc522_spi_of_match),
-    },
-    .probe = rc522_spi_probe,
-    .remove = rc522_spi_remove,
-    .id_table = rc522_spi_idtable,
-};
-
-int rc522_char_device_open(struct inode *inode, struct file *file)
-{
-	//snprintf(lcd_data_buffer, DATA_MESSAGE_SIZE, "|%s|\n", full_lcd_characters);
-    if(rc522_char_device.Device_Open) return -EBUSY;
-	rc522_char_device.Device_Open++; // Trava acesso ao device
-	rc522_char_device.Device_Counter = 0; // Conta quantos caracteres foram lidos
-	try_module_get(THIS_MODULE); // Incrementa o contador de uso do modulo
-	return 0;
-}
-
-int rc522_char_device_release(struct inode *inode, struct file *file)
-{
-	rc522_char_device.Device_Open--; // Libera acesso ao device
-	module_put(THIS_MODULE); // Decrementa o contador de uso do modulo
-	return 0;
-}
-
-
-void ioctl_read_from_register(unsigned cmd, unsigned long arg) {
-    uint8_t addr, res;
-    if(copy_from_user(&addr, (int32_t *) arg, sizeof(addr))) {
-        printk(KERN_ERR "IOCTL_RC522_READ_REGISTER: Error copying data from user space\n");
-    }
-    res = read_from_register(addr);
-    if(copy_to_user((int32_t *) arg, &res, sizeof(res))) 
-        printk(KERN_ERR "IOCTL_RC522_READ_REGISTER: failed to write res to user space\n");
-}
-
-void ioctl_write_to_register(unsigned cmd, unsigned long arg) {
-    struct rfid_rc522_write_register_dto dto;
-    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto)))
-        printk(KERN_ERR "IOCTL_RC522_WRITE_REGISTER: Error copying data from user space\n");
-    write_to_register(dto.addr, dto.data);
-}
-
-void ioctl_req_a_picc(unsigned cmd, unsigned long arg) {
-    uint8_t res_size = 0, res_size_bits = 0, *res;
-    struct rfid_rc522_req_a_picc_dto dto;
-
-    dto.status = req_a_picc(&res, &res_size, &res_size_bits);
-
-    if(res_size > 2) res_size = 2;
-    memcpy(dto.res, res, res_size);
-    dto.res_size = res_size;
-
-    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
-        printk(KERN_INFO "IOCTL_RC522_REQ_A_PICC: failed to write response to user space\n");
-}
-
-void ioctl_anticollision(unsigned cmd, unsigned long arg) {
-    uint8_t res_size = 0, res_size_bits = 0, *res;
-    struct rfid_rc522_anticollision_dto dto;
-    dto.status = anticollision(&res, &res_size, &res_size_bits);
-
-    if(res_size > 5) res_size = 5;
-    memcpy(dto.uid, res, res_size);
-    dto.res_size = res_size;
-
-    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
-        printk(KERN_INFO "IOCTL_RC522_ANTICOLLISION: failed to write response to user space\n");
-}
-
-void ioctl_select_tag(unsigned cmd, unsigned long arg) {
-    uint8_t res_size = 0, res_size_bits = 0, *res;
-    struct rfid_rc522_select_tag_dto dto;
-    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
-        printk(KERN_ERR "IOCTL_RC522_SELECT_TAG: Error copying data from user space\n");
-        return;
-    }
-
-    dto.status = select_tag(&res, &res_size, &res_size_bits, dto.uid);
     
-    if(res_size > 3) res_size = 3;
-    memcpy(dto.res, res, res_size);
-    dto.res_size = res_size;
-
-    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
-        printk(KERN_ERR "IOCTL_RC522_SELECT_TAG: failed to write response to user space\n");
-}
-
-void ioctl_authenticate(unsigned cmd, unsigned long arg) {
-    uint8_t res_size = 0, res_size_bits = 0, *res;
-    struct rfid_rc522_authenticate_dto dto;
-    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
-        printk(KERN_ERR "IOCTL_RC522_AUTHENTICATE: Error copying data from user space\n");
-        return;
-    }
-
-    dto.status = authenticate(&res, &res_size, &res_size_bits, PICC_AUTHENT1A, dto.block_address, dto.sector_key, 6, dto.uid);
-
-    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
-        printk(KERN_ERR "IOCTL_RC522_AUTHENTICATE: failed to write response to user space\n");
-}
-
-void ioctl_read_picc_block(unsigned cmd, unsigned long arg) {
-    uint8_t res_size = 0, res_size_bits = 0, *res;
-    struct rfid_rc522_read_picc_block_dto dto;
-    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
-        printk(KERN_ERR "IOCTL_RC522_READ_PICC_BLOCK: Error copying data from user space\n");
-        return;
-    }
-
-    dto.status = read_block(&res, &res_size, &res_size_bits, dto.block_address);
-
-    if(res_size > 16) res_size = 16;
-    memcpy(dto.res, res, res_size);
-    dto.res_size = res_size;
-
-    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
-        printk(KERN_ERR "IOCTL_RC522_READ_PICC_BLOCK: failed to write response to user space\n");
-}
-
-void ioctl_write_picc_block(unsigned cmd, unsigned long arg) {
-    uint8_t res_size = 0, res_size_bits = 0, *res;
-    struct rfid_rc522_write_picc_block_dto dto;
-    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
-        printk(KERN_ERR "IOCTL_RC522_WRITE_PICC_BLOCK: Error copying data from user space\n");
-        return;
-    }
-
-    dto.status = write_block(dto.input, 16, &res, &res_size, &res_size_bits, dto.block_address);
-
-    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
-        printk(KERN_ERR "IOCTL_RC522_WRITE_PICC_BLOCK: failed to write response to user space\n");
-}
-
-void ioctl_stop_auth(unsigned cmd, unsigned long arg) {
-    stop_authentication();
-}
-
-long int rc522_char_device_ioctl(struct file *file, unsigned cmd, unsigned long arg){
-	switch(cmd){
-		case IOCTL_RC522_READ_REGISTER:
-            ioctl_read_from_register(cmd, arg);
-			break;
-		case IOCTL_RC522_WRITE_REGISTER:
-			ioctl_write_to_register(cmd, arg);
-			break;
-        case IOCTL_RC522_REQ_A_PICC:
-			ioctl_req_a_picc(cmd, arg);
-			break;
-        case IOCTL_RC522_ANTICOLLISION:
-			ioctl_anticollision(cmd, arg);
-			break;
-        case IOCTL_RC522_SELECT_TAG:
-			ioctl_select_tag(cmd, arg);
-			break;
-        case IOCTL_RC522_AUTHENTICATE:
-			ioctl_authenticate(cmd, arg);
-			break;
-        case IOCTL_RC522_READ_PICC_BLOCK:
-			ioctl_read_picc_block(cmd, arg);
-			break;
-        case IOCTL_RC522_WRITE_PICC_BLOCK:
-			ioctl_write_picc_block(cmd, arg);
-			break;
-        case IOCTL_RC522_STOP_AUTH:
-			ioctl_stop_auth(cmd, arg);
-			break;
-	}
-	return 0;
-}
-
-void rc522_clean(rc522_cleanup_level level)
-{
-    if(level >= RC522_CLEAN_ALL)
-	{
-		spi_unregister_driver(&rc522_spi_driver);
-	}
-    if(level >= RC522_CLEAN_GPIO)
-	{
-		gpio_set_value(rc522_rst_pin.gpio, 0);
-        gpio_free(rc522_rst_pin.gpio);
-	}
-    if(level >= RC522_CLEAN_DEVICE)
-	{
-        device_destroy(rc522_char_dev_class, rc522_char_device.dev_number);
-	}
-    if(level >= RC522_CLEAN_CLASS)
-	{
-        class_unregister(rc522_char_dev_class);
-		class_destroy(rc522_char_dev_class);
-	}
-    if(level >= RC522_CLEAN_MAJOR)
-	{
-        unregister_chrdev(MAJOR(rc522_char_device.dev_number), DEVICE_NAME);
-	}
-}
-
-int __init rc522_spi_init(void)
-{
-    int ret, result;
-
     result = register_chrdev(0, DEVICE_NAME, &rc522_char_device.fops);
 	if(result < 0)
 	{
@@ -706,28 +494,239 @@ int __init rc522_spi_init(void)
     gpio_direction_output(rc522_rst_pin.gpio, 1);
     printk(KERN_INFO "GPIO Reset configurado com sucesso\n");
 
-    printk(KERN_INFO "Iniciando driver SPI\n");
-    // Registrar a SPI device
-    ret = spi_register_driver(&rc522_spi_driver);
-    if (ret < 0) {
-        printk(KERN_ERR "Erro ao registrar o driver SPI\n");
-        rc522_clean(RC522_CLEAN_GPIO);
-        return ret;
-    }
-    printk(KERN_INFO "Driver SPI iniciado\n");
+    uint8_t version = rc522_pcd_setup();
+    printk(KERN_INFO "Version byte 0x%x\n", version);
 
-    
     return 0;
 }
 
-void __exit rc522_spi_exit(void)
+static void rc522_spi_remove(struct spi_device *spi)
 {
     rc522_clean(RC522_CLEAN_ALL);
-    MSG_OK("Dispositivo removido com sucesso");
 }
 
-module_init(rc522_spi_init);
-module_exit(rc522_spi_exit);
+static const struct spi_device_id rc522_spi_idtable[] = {
+    {"rc522", 2},
+    {},
+};
+
+MODULE_DEVICE_TABLE(spi, rc522_spi_idtable);
+
+static const struct of_device_id rc522_spi_of_match[] = {
+    {
+        .compatible = "mytest,rc522",
+    },
+    {},
+};
+
+MODULE_DEVICE_TABLE(of, rc522_spi_of_match);
+
+static struct spi_driver rc522_spi_driver = {
+    .driver = {
+        .name = "rc522_spi_device",
+        .owner = THIS_MODULE,
+        .of_match_table = of_match_ptr(rc522_spi_of_match),
+    },
+    .probe = rc522_spi_probe,
+    .remove = rc522_spi_remove,
+    .id_table = rc522_spi_idtable,
+};
+
+int rc522_char_device_open(struct inode *inode, struct file *file)
+{
+    if(rc522_char_device.Device_Open) return -EBUSY;
+	rc522_char_device.Device_Open++;
+	try_module_get(THIS_MODULE);
+	return 0;
+}
+
+int rc522_char_device_release(struct inode *inode, struct file *file)
+{
+	rc522_char_device.Device_Open--; // Libera acesso ao device
+	module_put(THIS_MODULE); // Decrementa o contador de uso do modulo
+	return 0;
+}
+
+
+void ioctl_read_from_register(unsigned cmd, unsigned long arg) {
+    uint8_t addr, res;
+    if(copy_from_user(&addr, (int32_t *) arg, sizeof(addr))) {
+        printk(KERN_ERR "IOCTL_RC522_READ_REGISTER: Error copying data from user space\n");
+    }
+    res = read_from_register(addr);
+    if(copy_to_user((int32_t *) arg, &res, sizeof(res))) 
+        printk(KERN_ERR "IOCTL_RC522_READ_REGISTER: failed to write res to user space\n");
+}
+
+void ioctl_write_to_register(unsigned cmd, unsigned long arg) {
+    struct rfid_rc522_write_register_dto dto;
+    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto)))
+        printk(KERN_ERR "IOCTL_RC522_WRITE_REGISTER: Error copying data from user space\n");
+    write_to_register(dto.addr, dto.data);
+}
+
+void ioctl_write_to_register_multiple(unsigned cmd, unsigned long arg) {
+    struct rfid_rc522_write_multiple_register_dto dto;
+    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto)))
+        printk(KERN_ERR "IOCTL_RC522_WRITE_REGISTER: Error copying data from user space\n");
+    write_to_register_multiple(dto.addr, dto.data, dto.data_size);
+}
+
+void ioctl_req_a_picc(unsigned cmd, unsigned long arg) {
+    uint8_t res_size = 2, res_size_bits = 0, *res = kmalloc(res_size, GFP_KERNEL);
+    struct rfid_rc522_req_a_picc_dto dto;
+
+    dto.status = req_a_picc(res, &res_size, &res_size_bits);
+
+    memcpy(dto.res, res, res_size);
+    dto.res_size = res_size;
+    kfree(res);
+
+    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
+        printk(KERN_INFO "IOCTL_RC522_REQ_A_PICC: failed to write response to user space\n");
+}
+
+void ioctl_anticollision(unsigned cmd, unsigned long arg) {
+    uint8_t res_size = 5, res_size_bits = 0, *res = kmalloc(res_size, GFP_KERNEL);
+    struct rfid_rc522_anticollision_dto dto;
+    dto.status = anticollision(res, &res_size, &res_size_bits);
+
+    memcpy(dto.uid, res, res_size);
+    dto.res_size = res_size;
+    kfree(res);
+
+    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
+        printk(KERN_INFO "IOCTL_RC522_ANTICOLLISION: failed to write response to user space\n");
+}
+
+void ioctl_select_tag(unsigned cmd, unsigned long arg) {
+    uint8_t res_size = 3, res_size_bits = 0, *res = kmalloc(res_size, GFP_KERNEL);
+    struct rfid_rc522_select_tag_dto dto;
+    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
+        printk(KERN_ERR "IOCTL_RC522_SELECT_TAG: Error copying data from user space\n");
+        return;
+    }
+
+    dto.status = select_tag(res, &res_size, &res_size_bits, dto.uid);
+    
+    memcpy(dto.res, res, res_size);
+    dto.res_size = res_size;
+    kfree(res);
+
+    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
+        printk(KERN_ERR "IOCTL_RC522_SELECT_TAG: failed to write response to user space\n");
+}
+
+void ioctl_authenticate(unsigned cmd, unsigned long arg) {
+    uint8_t res_size = 1, res_size_bits = 0, *res = kmalloc(res_size, GFP_KERNEL);
+    struct rfid_rc522_authenticate_dto dto;
+    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
+        printk(KERN_ERR "IOCTL_RC522_AUTHENTICATE: Error copying data from user space\n");
+        return;
+    }
+
+    dto.status = authenticate(res, &res_size, &res_size_bits, PICC_AUTHENT1A, dto.block_address, dto.sector_key, 6, dto.uid);
+    kfree(res);
+
+    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
+        printk(KERN_ERR "IOCTL_RC522_AUTHENTICATE: failed to write response to user space\n");
+}
+
+void ioctl_read_picc_block(unsigned cmd, unsigned long arg) {
+    uint8_t res_size = 18, res_size_bits = 0, *res = kmalloc(res_size, GFP_KERNEL);
+    struct rfid_rc522_read_picc_block_dto dto;
+    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
+        printk(KERN_ERR "IOCTL_RC522_READ_PICC_BLOCK: Error copying data from user space\n");
+        return;
+    }
+
+    dto.status = read_block(res, &res_size, &res_size_bits, dto.block_address);
+
+    memcpy(dto.res, res, res_size > 16 ? 16 : res_size);
+    dto.res_size = res_size > 16 ? 16 : res_size;
+
+    kfree(res);
+    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
+        printk(KERN_ERR "IOCTL_RC522_READ_PICC_BLOCK: failed to write response to user space\n");
+}
+
+void ioctl_write_picc_block(unsigned cmd, unsigned long arg) {
+    uint8_t res_size = 1, res_size_bits = 0, res;
+    struct rfid_rc522_write_picc_block_dto dto;
+    if(copy_from_user(&dto, (int32_t *) arg, sizeof(dto))) {
+        printk(KERN_ERR "IOCTL_RC522_WRITE_PICC_BLOCK: Error copying data from user space\n");
+        return;
+    }
+
+    dto.status = write_block(dto.input, 16, &res, &res_size, &res_size_bits, dto.block_address);
+
+    if(copy_to_user((int32_t *) arg, &dto, sizeof(dto))) 
+        printk(KERN_ERR "IOCTL_RC522_WRITE_PICC_BLOCK: failed to write response to user space\n");
+}
+
+void ioctl_stop_auth(unsigned cmd, unsigned long arg) {
+    stop_authentication();
+}
+
+long int rc522_char_device_ioctl(struct file *file, unsigned cmd, unsigned long arg){
+	switch(cmd){
+		case IOCTL_RC522_READ_REGISTER:
+            ioctl_read_from_register(cmd, arg);
+			break;
+		case IOCTL_RC522_WRITE_REGISTER:
+			ioctl_write_to_register(cmd, arg);
+			break;
+        case IOCTL_RC522_WRITE_REGISTER_MULTIPLE:
+			ioctl_write_to_register_multiple(cmd, arg);
+			break;
+        case IOCTL_RC522_REQ_A_PICC:
+			ioctl_req_a_picc(cmd, arg);
+			break;
+        case IOCTL_RC522_ANTICOLLISION:
+			ioctl_anticollision(cmd, arg);
+			break;
+        case IOCTL_RC522_SELECT_TAG:
+			ioctl_select_tag(cmd, arg);
+			break;
+        case IOCTL_RC522_AUTHENTICATE:
+			ioctl_authenticate(cmd, arg);
+			break;
+        case IOCTL_RC522_READ_PICC_BLOCK:
+			ioctl_read_picc_block(cmd, arg);
+			break;
+        case IOCTL_RC522_WRITE_PICC_BLOCK:
+			ioctl_write_picc_block(cmd, arg);
+			break;
+        case IOCTL_RC522_STOP_AUTH:
+			ioctl_stop_auth(cmd, arg);
+			break;
+	}
+	return 0;
+}
+
+void rc522_clean(rc522_cleanup_level level)
+{
+    if(level >= RC522_CLEAN_ALL)
+	{
+		gpio_set_value(rc522_rst_pin.gpio, 0);
+        gpio_free(rc522_rst_pin.gpio);
+	}
+    if(level >= RC522_CLEAN_DEVICE)
+	{
+        device_destroy(rc522_char_dev_class, rc522_char_device.dev_number);
+	}
+    if(level >= RC522_CLEAN_CLASS)
+	{
+        class_unregister(rc522_char_dev_class);
+		class_destroy(rc522_char_dev_class);
+	}
+    if(level >= RC522_CLEAN_MAJOR)
+	{
+        unregister_chrdev(MAJOR(rc522_char_device.dev_number), DEVICE_NAME);
+	}
+}
+
+module_spi_driver(rc522_spi_driver);
 
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Julio Cesar Schneider Martins <jschneiderm98@gmail.com>");
