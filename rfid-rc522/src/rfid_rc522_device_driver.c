@@ -216,15 +216,20 @@ void rc522_antenna_on(void)
 uint8_t rc522_pcd_setup(void) {
     rc522_reset();
 
+    write_to_register(TxModeReg, 0x00);
+    write_to_register(RxModeReg, 0x00);
+    write_to_register(ModWidthReg, 0x26);
     //configure timeout for communication with PICC
-    write_to_register(TModeReg, 0x8D);
-    write_to_register(TPrescalerReg, 0x3E);
-    write_to_register(TReloadRegLSB, 0x1E);
-    write_to_register(TReloadRegMSB, 0x0);
+    write_to_register(TModeReg, 0x80);
+    write_to_register(TPrescalerReg, 0xA9);
+    write_to_register(TReloadRegMSB, 0x03);
+    write_to_register(TReloadRegLSB, 0xE8);
 
     write_to_register(TxASKReg, 0x40); // 100% ASK modulation
     write_to_register(ModeReg, 0x3D);
     rc522_antenna_on();
+
+    usleep_range(4500, 5500);
 
     return read_from_register(VersionReg);
 }
@@ -266,10 +271,11 @@ void rc522_self_test(void) {
     kfree(buffer);
 }
 
-rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t *response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc) {
+rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t *response, uint8_t *response_size, uint8_t *valid_bits, uint8_t should_check_crc, uint8_t bit_framing) {
     uint8_t irqEn = 0x00;
     uint8_t waitIrq = 0x00;
     uint8_t numFIFOBytes = 0;
+    
     //uint8_t tx_last_bits = valid_bits ? valid_bits : 0;
     //uint8_t bit_framing = tx_last_bits;
 
@@ -282,19 +288,27 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
         irqEn = 0x77;
         waitIrq = 0x30;
     }
-    write_to_register(CommandReg, Idle);
-    write_to_register(ComlEnReg, irqEn | 0x80);
+    //write_to_register(ComlEnReg, irqEn | 0x80);
     clear_bits_in_reg(ComIrqReg, 0x80);
     set_bits_in_reg(FIFOLevelReg, 0x80);
+    write_to_register(BitFramingReg, bit_framing);
+    write_to_register(CommandReg, Idle);
+    //write_to_register(BitFramingReg, 0x07);
 
     write_to_register_multiple(FIFODataReg, data, data_size);
+    usleep_range(3000, 3001);
+
+    for (size_t i = 0; i < data_size; i++)
+    {
+        printk(KERN_CONT "0x%x ", data[i]);
+    }
+    
 
     write_to_register(CommandReg, command);
-
     if(command == Transceive) {
         set_bits_in_reg(BitFramingReg, 0b10000000);
     }
-
+   
     int i = 2000;
 
     while (1) {
@@ -302,9 +316,13 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
         if (i-- < 1 || comIrqRegByte & waitIrq) break;
     }
 
-    clear_bits_in_reg(BitFramingReg, 0b10000000);
+    clear_bits_in_reg(BitFramingReg, 0x80);
+    if(command == Transceive) {
+        write_to_register(CommandReg, Idle);
+    }
 
-    if(i < 1) return RC522_TIMEOUT;
+    //if(i < 1) return RC522_TIMEOUT;
+
 
     uint8_t errorRegValue = read_from_register(ErrorReg); // ErrorReg[7..0] bits are: WrErr TempErr reserved BufferOvfl CollErr CRCErr ParityErr ProtocolErr
     if (errorRegValue & 0x13) 
@@ -315,6 +333,7 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
     if(read_from_register(ComIrqReg) & irqEn & 0x01) return RC522_NOTAGERR;
 
     numFIFOBytes = read_from_register(FIFOLevelReg);
+    
     uint8_t last_bits = read_from_register(ControlReg) & 0b00000111;
     if(numFIFOBytes > 0) {
         uint8_t *buffer = kmalloc(numFIFOBytes, GFP_KERNEL);
@@ -326,7 +345,7 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
         }
         memcpy(response, buffer, numFIFOBytes);
         *response_size = numFIFOBytes;
-        *response_size_bits = last_bits ? ((*response_size) - 1) * 8 + last_bits : (*response_size)*8;
+        *valid_bits = last_bits ? ((*response_size) - 1) * 8 + last_bits : (*response_size)*8;
         kfree(buffer);
     }
 
@@ -338,11 +357,10 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
 }
 
 rc522_status req_a_picc(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits) {
-    uint8_t req_mode = PICC_REQIDL;
+    uint8_t req_mode = PICC_REQA;
     clear_bits_in_reg(CollReg, 0x80);
-    write_to_register(BitFramingReg, 0x07);
 
-    rc522_status status = send_command(Transceive, &req_mode, 1, res, res_size, res_size_bits, 0);
+    rc522_status status = send_command(Transceive, &req_mode, 1, res, res_size, res_size_bits, 0, 0x07);
 
     if(status != RC522_OK) return status;
     if(*res_size_bits != 0x10) return RC522_ERR;
@@ -351,8 +369,8 @@ rc522_status req_a_picc(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits)
 
 rc522_status anticollision(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits) {
     uint8_t data[2] = { PICC_ANTICOLL, 0x20 };
-    write_to_register(BitFramingReg, 0x00);
-    rc522_status status = send_command(Transceive, data, 2, res, res_size, res_size_bits, 0);
+
+    rc522_status status = send_command(Transceive, data, 2, res, res_size, res_size_bits, 0, 0);
 
     if(status != RC522_OK) return status;
     if(*res_size != 5) return RC522_ERR;
@@ -369,7 +387,7 @@ rc522_status select_tag(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits,
     
     calculate_crc(buffer, 7, buffer+7);
 
-    rc522_status status = send_command(Transceive, buffer, 9, res, res_size, res_size_bits, 0);
+    rc522_status status = send_command(Transceive, buffer, 9, res, res_size, res_size_bits, 0, 0);
     kfree(buffer);
 
     if(status != RC522_OK) return status;
@@ -377,7 +395,7 @@ rc522_status select_tag(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits,
     return RC522_OK;
 }
 
-rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid) {
+rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, picc_transceive_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid) {
     // 1 for the auth_mode and 1 for address, and 4 for the first 4 bytes of uid
     uint8_t buffer_size = 2 + sector_key_size + 4;
     uint8_t *buffer = kmalloc(buffer_size, GFP_KERNEL);
@@ -386,7 +404,7 @@ rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bit
     memcpy(buffer+2, sector_key, sector_key_size);
     memcpy(buffer+2+sector_key_size, uid, 4);
 
-    rc522_status status = send_command(MFAuthent, buffer, buffer_size, res, res_size, res_size_bits, 0);
+    rc522_status status = send_command(MFAuthent, buffer, buffer_size, res, res_size, res_size_bits, 0, 0);
     kfree(buffer);
 
     if(status != RC522_OK) return status;
@@ -406,7 +424,7 @@ rc522_status read_block(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits,
     status = calculate_crc(buffer, 2, buffer+2);
     if(status != RC522_OK) return status;
 
-    status = send_command(Transceive, buffer, 4, res, res_size, res_size_bits, 1);
+    status = send_command(Transceive, buffer, 4, res, res_size, res_size_bits, 1, 0);
     kfree(buffer);
     if(status != RC522_OK) return status;
 
@@ -420,16 +438,20 @@ rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t *res, uint8_t
     rc522_status status;
     buffer[0] = PICC_WRITE;
     buffer[1] = blockAddr;
+    status = calculate_crc(buffer, 2, &buffer[2]);
+    if(status != RC522_OK) {
+        kfree(buffer);
+        kfree(buffer_res);
+        return status;
+    }
 
-    status = calculate_crc(buffer, 2, buffer+2);
-    if(status != RC522_OK) return status;
-    status = send_command(Transceive, buffer, 4, buffer_res, &buffer_res_size, &buffer_res_size_bits, 0);
-
+    status = send_command(Transceive, buffer, 4, buffer_res, &buffer_res_size, &buffer_res_size_bits, 0, 0);
     kfree(buffer);
     kfree(buffer_res);
 
-    if(status != RC522_OK) return status;
-
+    if(status != RC522_OK) {
+        return status;
+    }
     data_buffer = kmalloc(18, GFP_KERNEL);
     if(data_size < 16) {
         memcpy(data_buffer, data, data_size);
@@ -442,9 +464,11 @@ rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t *res, uint8_t
         memcpy(data_buffer, data, 16);
     }
     status = calculate_crc(data_buffer, 16, data_buffer+16);
-    if(status != RC522_OK) return status;
-
-    status = send_command(Transceive, data_buffer, 18, res, res_size, res_size_bits, 0);
+    if(status != RC522_OK) {
+        kfree(data_buffer);
+        return status;
+    }
+    status = send_command(Transceive, data_buffer, 18, res, res_size, res_size_bits, 0, 0);
     kfree(data_buffer);
     //if(*res_size != 16) return RC522_ERR;
     return status;

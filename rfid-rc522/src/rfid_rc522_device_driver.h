@@ -112,8 +112,8 @@ typedef enum rc522_commands {
 } rc522_commands;
 
 typedef enum picc_transceive_commands {
-    PICC_REQIDL = 0x26,
-    PICC_REQALL = 0x52,
+    PICC_REQA = 0x26,
+    PICC_WUPA = 0x52,
     PICC_ANTICOLL = 0x93,
     PICC_SElECTTAG = 0x93,
     PICC_READ = 0x30,
@@ -123,6 +123,8 @@ typedef enum picc_transceive_commands {
     PICC_RESTORE = 0xC2,
     PICC_TRANSFER = 0xB0,
     PICC_HALT = 0x50,
+    PICC_AUTHENT1A = 0x60,
+    PICC_AUTHENT1B = 0x61,
 } picc_transceive_commands;
 
 typedef enum rc522_cleanup_level {
@@ -131,11 +133,6 @@ typedef enum rc522_cleanup_level {
     RC522_CLEAN_DEVICE,
     RC522_CLEAN_ALL,
 } rc522_cleanup_level;
-
-typedef enum picc_auth_commands {
-    PICC_AUTHENT1A = 0x60,
-    PICC_AUTHENT1B = 0x61,
-} picc_auth_commands;
 
 typedef struct rc522_device_manager
 {
@@ -166,12 +163,12 @@ void set_bits_in_reg(mfrc522_registers reg, uint8_t bits_to_set);
 
 int isCrcOperationDone(void);
 uint8_t is_crc_from_picc_valid(uint8_t *data, uint8_t data_size);
-rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t *response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc);
+rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint8_t *response, uint8_t *response_size, uint8_t *response_size_bits, uint8_t should_check_crc, uint8_t bit_framing);
 rc522_status calculate_crc(uint8_t *data, size_t data_size, uint8_t *result);
 rc522_status req_a_picc(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits);
 rc522_status anticollision(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits);
 rc522_status select_tag(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t *uid);
-rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, picc_auth_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid);
+rc522_status authenticate(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, picc_transceive_commands auth_mode, uint8_t block_address, uint8_t *sector_key, uint8_t sector_key_size, uint8_t *uid);
 void stop_authentication(void);
 rc522_status read_block(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);
 rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr);

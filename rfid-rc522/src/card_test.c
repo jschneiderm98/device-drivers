@@ -76,7 +76,11 @@ rc522_status read_block(int file_id, uint8_t block_address) {
 	printf("bloco %u: |", block_address);
 	for (size_t i = 0; i < dto_read.res_size; i++)
 	{
-		printf("%c", dto_read.res[i]);
+		if(block_address != 0) {
+			printf("%c", dto_read.res[i]);
+			continue;
+		}
+		printf("%u", dto_read.res[i]);
 	}
 	printf("|\n");
 	return dto_read.status;
