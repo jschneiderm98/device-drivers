@@ -70,6 +70,18 @@ int main() {
 	ioctl(dev, IOCTL_RC522_READ_REGISTER, &read_ioctl_data);
 	printf("FIFO_DATA_REG_ADDR(terceiro valor inserido) Value: %u\n", read_ioctl_data);
 
+	read_ioctl_data = FIFO_DATA_REG_ADDR;
+	ioctl(dev, IOCTL_RC522_READ_REGISTER, &read_ioctl_data);
+	printf("FIFO_DATA_REG_ADDR(quarto valor inserido) Value: %u\n", read_ioctl_data);
+
+	read_ioctl_data = FIFO_DATA_REG_ADDR;
+	ioctl(dev, IOCTL_RC522_READ_REGISTER, &read_ioctl_data);
+	printf("FIFO_DATA_REG_ADDR(quinto valor inserido) Value: %u\n", read_ioctl_data);
+
+	read_ioctl_data = FIFO_LEVEL_REG_ADDR;
+	ioctl(dev, IOCTL_RC522_READ_REGISTER, &read_ioctl_data);
+	printf("FIFOLevelReg Value(apos recuperar todos os bytes que haviam sido inseridos): %u\n", read_ioctl_data);
+
 	close(dev);
 	return 0;
 }
