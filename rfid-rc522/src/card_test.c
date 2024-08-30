@@ -165,17 +165,17 @@ int main() {
 	
 	status = auth_in_sector(dev, 2, uid, key);
 	printf("auth again %u\n", status); 
-	write_block(dev, 8, "bloco !! alterado    ");
+	write_block(dev, 8, "8depois depois depois");
 	printf("write done\n");
 
 	status = auth_in_sector(dev, 4, uid, key);
 	printf("auth again %u\n", status); 
-	write_block(dev, 16, "bloco !!! alterad    ");
+	write_block(dev, 16, "16depois depois depois");
 	printf("write done\n");
 
 	status = auth_in_sector(dev, 8, uid, key);
 	printf("auth again %u\n", status); 
-	write_block(dev, 32, "bloco !!!! alterad     ");
+	write_block(dev, 32, "32depois depois depois");
 	printf("write done\n");
 
 	read_all_blocks(dev, uid, key);
