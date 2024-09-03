@@ -24,7 +24,7 @@
                 compatible = "mytest,rc522";
                 status = "okay"; 
                 reg = <0x0>; 
-                spi-max-frequency = <10000000>;
+                spi-max-frequency = <4000000>;
             }; 
          }; 
     };

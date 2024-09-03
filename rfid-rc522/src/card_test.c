@@ -65,14 +65,14 @@ rc522_status auth_in_sector(int file_id, uint8_t sector, uint8_t uid[5], uint8_t
 	return dto_auth.status;
 }
 
-rc522_status read_block(int file_id, uint8_t block_address) {
+rc522_status read_block(int file_id, uint8_t block_address, int silent) {
 	struct rfid_rc522_read_picc_block_dto dto_read;
 
 	dto_read.block_address = block_address;
 	ioctl(file_id, IOCTL_RC522_READ_PICC_BLOCK, &dto_read);
 
 	if(dto_read.status != 0) return dto_read.status;
-
+	if(silent) return dto_read.status;
 	printf("bloco %u: |", block_address);
 	for (size_t i = 0; i < dto_read.res_size; i++)
 	{
@@ -86,14 +86,47 @@ rc522_status read_block(int file_id, uint8_t block_address) {
 	return dto_read.status;
 }
 
-rc522_status write_block(int file_id, uint8_t block_address, char *data) {
+rc522_status write_block(int file_id, uint8_t block_address, char *data, int silent) {
 	struct rfid_rc522_write_picc_block_dto dto_write;
 
 	memcpy(dto_write.input, data, 16);
 	dto_write.block_address = block_address;
 	ioctl(file_id, IOCTL_RC522_WRITE_PICC_BLOCK, &dto_write);
-	printf("write_block status %u\n", dto_write.status);
+	if(!silent) printf("write_block status %u\n", dto_write.status);
 	return dto_write.status;
+}
+
+void write_all_blocks(int file_id, uint8_t *uid, uint8_t *sector_key) {
+	rc522_status status;
+	for (size_t sector = 1; sector < 16; sector++)
+	{
+		uint16_t cont_auth = 0;
+		do
+		{
+			status = auth_in_sector(file_id, sector, uid, sector_key);
+			cont_auth++;
+		} while (status != RC522_OK && cont_auth < 256);
+		if(cont_auth >= 256) {
+			printf("Não foi possível autenticar em setor %u, rc522_status: %u\n", sector, status);
+			continue;
+		}	
+		for (size_t block_in_sector = 0; block_in_sector < 3; block_in_sector++)
+		{
+			size_t current_block = sector*4 + block_in_sector;
+			uint16_t cont_write = 0;
+			do
+			{
+				char data[30];
+				sprintf(data, "bloco: %u          ", current_block);
+				status = write_block(file_id, current_block, data, 1);
+				cont_write++;
+				usleep(10000);
+			} while (status != RC522_OK && cont_write < 256);
+			if(cont_write >= 256) {
+				printf("Não foi possível ler o bloco %u, rc522_status: %u\n", current_block, status);
+			}	
+		}
+	}
 }
 
 void read_all_blocks(int file_id, uint8_t *uid, uint8_t *sector_key) {
@@ -116,7 +149,7 @@ void read_all_blocks(int file_id, uint8_t *uid, uint8_t *sector_key) {
 			uint16_t cont_read = 0;
 			do
 			{
-				status = read_block(file_id, current_block);
+				status = read_block(file_id, current_block, 0);
 				cont_read++;
 			} while (status != RC522_OK && cont_read < 256);
 			if(cont_read >= 256) {
@@ -161,25 +194,34 @@ int main() {
 	}
 
 	read_all_blocks(dev, uid, key);
-	printf("read all %u\n", status);
+	printf("read all done\n");
+	sleep(1);
+ 
+	write_all_blocks(dev, uid, key);
+	printf("write all done\n");
+
+	sleep(1);
+	read_all_blocks(dev, uid, key);
+	printf("read all done\n");
 	
 	status = auth_in_sector(dev, 2, uid, key);
 	printf("auth again %u\n", status); 
-	write_block(dev, 8, "8depois depois depois");
+	write_block(dev, 8, "Ola mundo, 8        ", 1);
 	printf("write done\n");
 
 	status = auth_in_sector(dev, 4, uid, key);
 	printf("auth again %u\n", status); 
-	write_block(dev, 16, "16depois depois depois");
+	write_block(dev, 16, "Ola mundo, 16        ", 1);
 	printf("write done\n");
 
 	status = auth_in_sector(dev, 8, uid, key);
 	printf("auth again %u\n", status); 
-	write_block(dev, 32, "32depois depois depois");
+	write_block(dev, 32, "Ola mundo, 32        ", 1);
 	printf("write done\n");
 
 	read_all_blocks(dev, uid, key);
 	printf("read all done\n");
+	write_all_blocks(dev, uid, key);
 
 	ioctl(dev, IOCTL_RC522_STOP_AUTH);
 

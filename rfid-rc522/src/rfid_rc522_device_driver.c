@@ -296,13 +296,6 @@ rc522_status send_command(uint8_t command, uint8_t *data, size_t data_size, uint
     //write_to_register(BitFramingReg, 0x07);
 
     write_to_register_multiple(FIFODataReg, data, data_size);
-    usleep_range(3000, 3001);
-
-    for (size_t i = 0; i < data_size; i++)
-    {
-        printk(KERN_CONT "0x%x ", data[i]);
-    }
-    
 
     write_to_register(CommandReg, command);
     if(command == Transceive) {
@@ -433,7 +426,7 @@ rc522_status read_block(uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits,
 
 rc522_status write_block(uint8_t *data, uint8_t data_size, uint8_t *res, uint8_t *res_size, uint8_t *res_size_bits, uint8_t blockAddr) {
     uint8_t *buffer = kmalloc(4, GFP_KERNEL), buffer_res_size = 1, buffer_res_size_bits;
-    uint8_t *buffer_res  = kmalloc(buffer_res_size, GFP_KERNEL);
+    uint8_t *buffer_res = kmalloc(buffer_res_size, GFP_KERNEL);
     uint8_t *data_buffer;
     rc522_status status;
     buffer[0] = PICC_WRITE;
