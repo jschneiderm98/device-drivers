@@ -12,7 +12,7 @@
 static struct class*  rc522_char_dev_class  = NULL;
 static struct spi_device *rc522_spi_dev;
 
-static struct gpio rc522_rst_pin = {  RC522_RST_PIN, GPIOF_OUT_INIT_HIGH, "EN" };
+static struct gpio_desc *rc522_rst_pin;
 
 rc522_device_manager rc522_char_device = {
 	.Device_Open = 0,
@@ -501,14 +501,12 @@ static int rc522_spi_probe(struct spi_device *spi)
 	MSG_OK("dispositivo criado corretamente");
     
     printk(KERN_INFO "Iniciando GPIO Reset\n");
-    ret = gpio_request(rc522_rst_pin.gpio, rc522_rst_pin.label);
-    if(ret) {
+    rc522_rst_pin = gpiod_get(&(spi->dev), "reset", GPIOD_OUT_HIGH);
+    if(IS_ERR(rc522_rst_pin)) {
 		rc522_clean(RC522_CLEAN_DEVICE);
-		MSG_BAD("Não foi possível obter acesso ao GPIO.", (long int)ret);
+		MSG_BAD("Não foi possível obter acesso ao GPIO.", (long int)rc522_rst_pin);
         return ret;
     }
-    printk(KERN_INFO "GPIO Reset iniciado, setando como output com valor 1\n");
-    gpio_direction_output(rc522_rst_pin.gpio, 1);
     printk(KERN_INFO "GPIO Reset configurado com sucesso\n");
 
     uint8_t version = rc522_pcd_setup();
@@ -725,8 +723,7 @@ void rc522_clean(rc522_cleanup_level level)
 {
     if(level >= RC522_CLEAN_ALL)
 	{
-		gpio_set_value(rc522_rst_pin.gpio, 0);
-        gpio_free(rc522_rst_pin.gpio);
+        gpiod_put(rc522_rst_pin);
 	}
     if(level >= RC522_CLEAN_DEVICE)
 	{
