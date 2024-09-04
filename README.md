@@ -103,7 +103,8 @@ O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclus�
 | 10 | 20/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, Self test RC522 | <center>:white_check_mark:</center> |
 | 11 | 27/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, Leitura e escrita de dispositivos RFID | <center>:white_check_mark:</center> |
 | 12 | 15/07/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, setup do device-driver | <center>:white_check_mark:</center> |
-| 13 | 22/07/2024 | Continuação da escrita dos Resultados e Discussões |<center>:black_square_button:</center>  |
-| 14 | 29/07/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers | <center>:black_square_button:</center> |
-| 15 | 05/08/2024 | Continuação da escrita dos Introdução | <center>:black_square_button:</center> |
-| 16 | 12/08/2024 | Continuação da escrita da Conclusão e do Resumo | <center>:black_square_button:</center> |
+| 13 | 22/07/2024 | Continuação da escrita dos Resultados e Discussões |<center>:white_check_mark:</center>  |
+| 14 | 29/07/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers | <center>:white_check_mark:</center> |
+| 15 | 05/08/2024 | Continuação da escrita dos Introdução | <center>:white_check_mark:</center> |
+| 16 | 12/08/2024 | Continuação da escrita da Conclusão e do Resumo | <center>:white_check_mark:</center> |
+| 19 | 02/09/2024 | Revisões finais | <center>:black_square_button:</center> |
