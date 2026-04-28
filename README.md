@@ -64,47 +64,9 @@ sudo ln -s /usr/src/linux-headers-$(uname -r)/ /lib/modules/$(uname -r)/build
 
 ## TCC
 
-O desenvolvimento desse projeto será realizado como um TCC(Trabalho de conclusão de curso).
+O desenvolvimento desse projeto foi realizado como um TCC(Trabalho de conclusão de curso).
 
 ### Aluno: [Júlio César Schneider Martins](https://github.com/jschneiderm98)
 ### Orientador: [Diogo Caetano Garcia](https://github.com/DiogoCaetanoGarcia)
+### Link TCC: https://bdm.unb.br/bitstream/10483/40315/1/2024_JulioCesarSchneiderMartins_tcc.pdf
 
-## Cronograma TCC1
-
-| Semana | Data inicial | Tarefa |
-| - | - | - |
-| 01 | 28/11/2022 | Estudar outros módulos para o desenvolvimento de device drivers. |
-| 02 | 05/12/2022 | Planejar desenvolvimento dos device drivers do(s) módulo(s) escolhido(s)  |
-| 03 | 12/12/2022 | Iniciar escrita do TCC1, escrever introdução |
-| 04 | 19/12/2022 | Realizar revisão bibliográfica |
-| 05 | 26/12/2022 | Natal |
-| 06 | 02/01/2023 | Realizar revisão bibliográfica |
-| 07 | 09/01/2023 | Escrever Proposta de tema |
-| 08 | 16/01/2023 | Escrever resultados e discussão |
-| 09 | 23/01/2023 | Escrever Passos futuros e cronograma |
-| 10 | 30/01/2023 | Revisão do texto |
-| 11 | 06/02/2023 | Revisão do texto |
-| 12 | 13/02/2023 | Revisão do texto |
-| 13 | 20/02/2023 | Defesa na banca de TCC1 |
-
-## Cronograma TCC2
-| Semana | Data inicial | Tarefa | Concluido |
-| - | - | - | - |
-| 01.0 | 18/03/2024 | Revisão do contéudo estudado no TCC1 | <center>:white_check_mark:</center> |
-| 02.1 | 25/03/2024 | Estudo sobre funcionamento do módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 02.2 | 28/03/2024 | Estudo sobre o uso de comunicação serial em módulos do kernel | <center>:white_check_mark:</center> |
-| 03 | 01/04/2024 | Montagem do circuto e testes iniciais utilizando linguagem de alto nível (Python) com o módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 04 | 08/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 05 | 15/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 06 | 22/04/2024 | Desenvolvimento de um driver no espaço de usuário utilizando a linguagem C para o módulo RFID-RC522 | <center>:white_check_mark:</center> |
-| 07 | 29/04/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:white_check_mark:</center> |
-| 08 | 06/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, interface SPI básica | <center>:white_check_mark:</center> |
-| 09 | 13/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, leitura e escrita de registradores | <center>:white_check_mark:</center> |
-| 10 | 20/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, Self test RC522 | <center>:white_check_mark:</center> |
-| 11 | 27/05/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, Leitura e escrita de dispositivos RFID | <center>:white_check_mark:</center> |
-| 12 | 15/07/2024 | Desenvolvimento do device-driver no kernel para o módulo RFID-RC522, setup do device-driver | <center>:white_check_mark:</center> |
-| 13 | 22/07/2024 | Continuação da escrita dos Resultados e Discussões |<center>:white_check_mark:</center>  |
-| 14 | 29/07/2024 | Continuação da escrita dos Materiais e métodos e Desenvolvimento dos Drivers | <center>:white_check_mark:</center> |
-| 15 | 05/08/2024 | Continuação da escrita dos Introdução | <center>:white_check_mark:</center> |
-| 16 | 12/08/2024 | Continuação da escrita da Conclusão e do Resumo | <center>:white_check_mark:</center> |
-| 19 | 02/09/2024 | Revisões finais | <center>:black_square_button:</center> |
